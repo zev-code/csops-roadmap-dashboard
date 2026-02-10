@@ -123,5 +123,4 @@ jobs:
           DEPLOY_USER: ${{ secrets.VPS_USER }}
           DEPLOY_HOST: ${{ secrets.VPS_HOST }}
         run: |
-          echo "Connecting as user: [${DEPLOY_USER}] to host: [${DEPLOY_HOST}]"
-          ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" 'cd /var/www/csops-roadmap && git pull origin main && sudo systemctl restart csops-roadmap && sleep 2 && curl -sf http://127.0.0.1:5000/api/health || exit 1 && echo "Deploy successful"'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" 'cd /var/www/csops-roadmap && git pull origin main && sudo systemctl restart csops-roadmap && sleep 2 && curl -sf http://127.0.0.1:5000/api/health || exit 1 && echo "Deploy successful"'
