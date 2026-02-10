@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T16:14:06Z",
+  "last_updated": "2026-02-10T16:14:11Z",
   "items": [
     {
       "id": 1,
@@ -1200,149 +1200,11 @@
       "owner": "Zev",
       "added_date": "2026-02-10",
       "expected_delivery": null
-    },
-    {
-      "id": 50,
-      "name": "test",
-      "category": "CS Enablement",
-      "description": "tttt",
-      "business_impact": "",
-      "outcome": "TBD - define after initial build",
-      "success_metric": "TBD",
-      "impact_score": 0.0,
-      "ease_score": 0.0,
-      "priority_score": 0.0,
-      "build_time": "",
-      "phase": "",
-      "expected_delivery": "2026-02-10",
-      "status": "DONE",
-      "start_date": "2026-02-10",
-      "completed_date": "2026-02-10",
-      "dependencies": "",
-      "votes": [],
-      "vote_count": 0,
-      "n8n_workflows": [],
-      "owner": "Zev",
-      "added_date": "2026-02-10",
-      "edit_history": [
-        {
-          "timestamp": "2026-02-10T13:44:07Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T13:44:12Z",
-          "field": "status",
-          "old_value": "DONE",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:04:43Z",
-          "field": "category",
-          "old_value": "Uncategorized",
-          "new_value": "CS Enablement",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:05:06Z",
-          "field": "expected_delivery",
-          "old_value": null,
-          "new_value": "2026-02-10",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:10:46Z",
-          "field": "description",
-          "old_value": "",
-          "new_value": "tttt",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:16:52Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:16:56Z",
-          "field": "status",
-          "old_value": "DONE",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:17:21Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:17:29Z",
-          "field": "status",
-          "old_value": "DONE",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:17:31Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:19:05Z",
-          "field": "status",
-          "old_value": "DONE",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:19:09Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:21:08Z",
-          "field": "status",
-          "old_value": "DONE",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:21:21Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:26:46Z",
-          "field": "status",
-          "old_value": "DONE",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:26:47Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        }
-      ]
     }
   ],
   "backlog": [],
   "metadata": {
-    "total_items": 50,
+    "total_items": 49,
     "categories": [
       "CS Enablement",
       "CS Intelligence",
