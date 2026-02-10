@@ -13,6 +13,11 @@ CORS(app)
 VALID_STATUSES = ['BACKLOG', 'PLANNED', 'NEXT', 'IN_PROGRESS', 'DONE']
 REQUIRED_FIELDS = ['name']
 ROADMAP_FILE = Config.ROADMAP_FILE
+TRACKED_FIELDS = [
+    'status', 'build_time', 'description', 'business_impact',
+    'outcome', 'success_metric', 'start_date', 'completed_date',
+    'expected_delivery', 'owner',
+]
 
 
 # --- Data helpers ---
@@ -85,6 +90,7 @@ def make_item(data, item_id):
         'n8n_workflows': data.get('n8n_workflows', []),
         'owner': data.get('owner', 'Zev'),
         'added_date': today_str(),
+        'edit_history': [],
     }
 
 
@@ -203,6 +209,22 @@ def update_item(item_id):
     if 'expected_delivery' not in body:
         updated['expected_delivery'] = existing.get('expected_delivery')
     apply_status_dates(updated, updated['status'])
+    # Track edit history
+    history = list(existing.get('edit_history', []))
+    edited_by = body.get('_edited_by', 'Zev')
+    now_ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    for field in TRACKED_FIELDS:
+        old_val = existing.get(field)
+        new_val = updated.get(field)
+        if (old_val or None) != (new_val or None):
+            history.append({
+                'timestamp': now_ts,
+                'field': field,
+                'old_value': old_val,
+                'new_value': new_val,
+                'edited_by': edited_by,
+            })
+    updated['edit_history'] = history
     data['items'][idx] = updated
     save_roadmap(data)
     return jsonify(updated)
@@ -233,8 +255,20 @@ def update_status(item_id):
     if item is None:
         return jsonify({'error': f'Item {item_id} not found'}), 404
 
+    old_status = item['status']
     item['status'] = new_status
     apply_status_dates(item, new_status)
+    # Track status change in edit history
+    history = list(item.get('edit_history', []))
+    if old_status != new_status:
+        history.append({
+            'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'field': 'status',
+            'old_value': old_status,
+            'new_value': new_status,
+            'edited_by': body.get('_edited_by', 'Zev'),
+        })
+    item['edit_history'] = history
     data['items'][idx] = item
     save_roadmap(data)
     return jsonify(item)

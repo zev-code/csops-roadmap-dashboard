@@ -3,7 +3,8 @@ let roadmapData = null;
 let allItems = [];
 let filteredItems = [];
 let currentDetailItem = null;
-let isEditMode = false;
+let activeEditField = null;
+let saveQueue = Promise.resolve();
 let lastFocusTrigger = null;
 
 const STATUSES = ['BACKLOG', 'PLANNED', 'NEXT', 'IN_PROGRESS', 'DONE'];
@@ -18,15 +19,28 @@ const STATUS_LABELS = {
 const CATEGORY_COLORS = {
   'CS Intelligence':      { bg: '#13D77A', text: '#FFFFFF' },
   'DevOps':               { bg: '#80D7DB', text: '#101A28' },
-  'CS Enablement':        { bg: '#13D77A', text: '#FFFFFF' },
+  'CS Enablement':        { bg: '#6366F1', text: '#FFFFFF' },
   'Reliability':          { bg: '#FFA987', text: '#101A28' },
   'Measurement':          { bg: '#F7EE6C', text: '#101A28' },
-  'Documentation':        { bg: '#80D7DB', text: '#101A28' },
-  'Governance':           { bg: '#FFA987', text: '#101A28' },
-  'Product Intelligence': { bg: '#13D77A', text: '#FFFFFF' },
+  'Documentation':        { bg: '#F472B6', text: '#FFFFFF' },
+  'Governance':           { bg: '#FB923C', text: '#101A28' },
+  'Product Intelligence': { bg: '#A78BFA', text: '#FFFFFF' },
   'Infrastructure':       { bg: null, text: null },
-  'Knowledge Mgmt':       { bg: '#80D7DB', text: '#101A28' },
+  'Knowledge Mgmt':       { bg: '#2DD4BF', text: '#101A28' },
   'Uncategorized':        { bg: null, text: null },
+};
+
+const EDITABLE_FIELDS = {
+  status:            { type: 'select', options: 'status' },
+  build_time:        { type: 'text', placeholder: 'e.g. 3-4 hrs' },
+  description:       { type: 'textarea', placeholder: 'What does it do?' },
+  business_impact:   { type: 'textarea', placeholder: 'Why does it matter?' },
+  outcome:           { type: 'textarea', placeholder: 'What changes when this ships?' },
+  success_metric:    { type: 'text', placeholder: 'How will you measure success?' },
+  start_date:        { type: 'date' },
+  completed_date:    { type: 'date' },
+  expected_delivery: { type: 'date' },
+  owner:             { type: 'text', placeholder: 'e.g. Zev' },
 };
 
 // ───── DOM refs ─────
@@ -42,8 +56,6 @@ const detailTitle = $('detailTitle');
 const detailBody = $('detailBody');
 const detailClose = $('detailClose');
 const detailFooter = $('detailFooter');
-const detailEdit = $('detailEdit');
-const detailDelete = $('detailDelete');
 const addModal = $('addModal');
 const addForm = $('addForm');
 const addClose = $('addClose');
@@ -501,22 +513,45 @@ async function moveCardWithKeyboard(item, direction) {
   await handleDrop(item, STATUSES[newIdx]);
 }
 
-// ───── Detail Modal (Read-Only) ─────
+// ───── Detail Modal ─────
 function openDetail(item) {
   currentDetailItem = item;
-  isEditMode = false;
+  activeEditField = null;
   renderDetailView(item);
-  renderDetailFooter(false);
+  renderDetailFooter();
   detailModal.classList.add('active');
+}
+
+function getFieldDisplayHtml(fieldName, item) {
+  const valOrMuted = (val) => isTBD(val)
+    ? `<span class="detail__value detail__value--muted">${escapeHtml(val || 'TBD')}</span>`
+    : `<span class="detail__value">${escapeHtml(val)}</span>`;
+
+  switch (fieldName) {
+    case 'status':
+      return `<span class="detail__meta-badge">${STATUS_LABELS[item.status] || item.status}</span>`;
+    case 'build_time':
+      return item.build_time
+        ? `<span class="detail__meta-badge">${escapeHtml(item.build_time)}</span>`
+        : `<span class="detail__meta-badge detail__meta-badge--muted">+ Build Time</span>`;
+    case 'expected_delivery':
+      return formatExpectedDelivery(item);
+    case 'owner':
+      return `<span class="detail__value">${escapeHtml(item.owner || 'Unassigned')}</span>`;
+    default:
+      return valOrMuted(item[fieldName]);
+  }
 }
 
 function renderDetailView(item) {
   detailTitle.textContent = item.name;
 
   const catStyle = getCategoryStyle(item.category);
-  const valOrMuted = (val) => isTBD(val)
-    ? `<span class="detail__value detail__value--muted">${escapeHtml(val || 'TBD')}</span>`
-    : `<span class="detail__value">${escapeHtml(val)}</span>`;
+
+  const editable = (fieldName, displayHtml) =>
+    `<div class="editable" data-field="${fieldName}" tabindex="0" role="button" aria-label="Click to edit ${fieldName.replace(/_/g, ' ')}">
+      <div class="editable__display">${displayHtml}</div>
+    </div>`;
 
   const scoreBar = (label, val) => `
     <div class="detail__section">
@@ -533,28 +568,28 @@ function renderDetailView(item) {
     <div class="detail__meta">
       <span class="detail__meta-badge" style="background:${catStyle.bg};color:${catStyle.text}">${escapeHtml(item.category)}</span>
       <span class="detail__meta-badge">#${item.id}</span>
-      <span class="detail__meta-badge">${STATUS_LABELS[item.status] || item.status}</span>
-      ${item.build_time ? `<span class="detail__meta-badge">${escapeHtml(item.build_time)}</span>` : ''}
+      ${editable('status', getFieldDisplayHtml('status', item))}
+      ${editable('build_time', getFieldDisplayHtml('build_time', item))}
     </div>
 
     <div class="detail__section">
       <div class="detail__label">Description</div>
-      ${valOrMuted(item.description)}
+      ${editable('description', getFieldDisplayHtml('description', item))}
     </div>
 
     <div class="detail__section">
       <div class="detail__label">Business Impact</div>
-      ${valOrMuted(item.business_impact)}
+      ${editable('business_impact', getFieldDisplayHtml('business_impact', item))}
     </div>
 
     <div class="detail__row">
       <div class="detail__section">
         <div class="detail__label">Outcome</div>
-        ${valOrMuted(item.outcome)}
+        ${editable('outcome', getFieldDisplayHtml('outcome', item))}
       </div>
       <div class="detail__section">
         <div class="detail__label">Success Metric</div>
-        ${valOrMuted(item.success_metric)}
+        ${editable('success_metric', getFieldDisplayHtml('success_metric', item))}
       </div>
     </div>
 
@@ -565,28 +600,28 @@ function renderDetailView(item) {
     <div class="detail__row">
       <div class="detail__section">
         <div class="detail__label">Start Date</div>
-        ${valOrMuted(item.start_date)}
+        ${editable('start_date', getFieldDisplayHtml('start_date', item))}
       </div>
       <div class="detail__section">
         <div class="detail__label">Completed Date</div>
-        ${valOrMuted(item.completed_date)}
+        ${editable('completed_date', getFieldDisplayHtml('completed_date', item))}
       </div>
     </div>
 
     <div class="detail__section">
       <div class="detail__label">Expected Delivery</div>
-      ${formatExpectedDelivery(item)}
+      ${editable('expected_delivery', getFieldDisplayHtml('expected_delivery', item))}
     </div>
 
     <div class="detail__section">
       <div class="detail__label">Dependencies</div>
-      ${valOrMuted(item.dependencies || 'None')}
+      <span class="detail__value">${escapeHtml(item.dependencies || 'None')}</span>
     </div>
 
     <div class="detail__row">
       <div class="detail__section">
         <div class="detail__label">Owner</div>
-        <span class="detail__value">${escapeHtml(item.owner || 'Unassigned')}</span>
+        ${editable('owner', getFieldDisplayHtml('owner', item))}
       </div>
       <div class="detail__section">
         <div class="detail__label">Added</div>
@@ -594,33 +629,29 @@ function renderDetailView(item) {
       </div>
     </div>
   `;
+
+  attachEditableHandlers();
 }
 
-function renderDetailFooter(editing) {
-  if (editing) {
-    detailFooter.innerHTML = `
-      <button class="btn btn--outline" id="editCancel">Cancel</button>
-      <button class="btn btn--primary" id="editSave">Save Changes</button>
-    `;
-    $('editCancel').addEventListener('click', cancelEdit);
-    $('editSave').addEventListener('click', saveEdit);
-  } else {
-    detailFooter.innerHTML = `
-      <button class="btn btn--danger" id="detailDelete">Delete</button>
-      <button class="btn btn--outline" id="detailEdit">Edit</button>
-    `;
-    $('detailDelete').addEventListener('click', () => showDeleteConfirmation(currentDetailItem));
-    $('detailEdit').addEventListener('click', () => enterEditMode(currentDetailItem));
-  }
+function renderDetailFooter() {
+  detailFooter.innerHTML = `
+    <button class="btn btn--icon-danger" id="detailDelete" aria-label="Delete item" title="Delete item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    </button>
+  `;
+  $('detailDelete').addEventListener('click', () => showDeleteConfirmation(currentDetailItem));
 }
 
 function closeDetail() {
   detailModal.classList.remove('active');
-  isEditMode = false;
-  // Remove any lingering confirmation overlays
+  activeEditField = null;
   const overlay = detailModal.querySelector('.confirm-overlay');
   if (overlay) overlay.remove();
-  // Return focus
   if (lastFocusTrigger && lastFocusTrigger.isConnected) {
     lastFocusTrigger.focus();
     lastFocusTrigger = null;
@@ -632,153 +663,137 @@ detailModal.addEventListener('click', (e) => {
   if (e.target === detailModal) closeDetail();
 });
 
-// ───── Edit Mode ─────
-function enterEditMode(item) {
-  isEditMode = true;
-  detailTitle.textContent = 'Edit Item';
-
-  const field = (label, name, value, type = 'text', opts = {}) => {
-    const req = opts.required ? '<span class="required">*</span>' : '';
-    const ph = opts.placeholder || '';
-    if (type === 'textarea') {
-      return `<div class="form__group">
-        <label class="form__label">${label} ${req}</label>
-        <textarea class="form__textarea" name="${name}" placeholder="${ph}" rows="${opts.rows || 3}">${escapeHtml(value || '')}</textarea>
-      </div>`;
-    }
-    if (type === 'select-category') {
-      return `<div class="form__group">
-        <label class="form__label">${label} ${req}</label>
-        <select class="form__select" name="${name}">${categoryOptions(value)}</select>
-      </div>`;
-    }
-    if (type === 'select-status') {
-      return `<div class="form__group">
-        <label class="form__label">${label}</label>
-        <select class="form__select" name="${name}">${statusOptions(value)}</select>
-      </div>`;
-    }
-    const step = opts.step ? `step="${opts.step}"` : '';
-    const min = opts.min != null ? `min="${opts.min}"` : '';
-    const max = opts.max != null ? `max="${opts.max}"` : '';
-    return `<div class="form__group">
-      <label class="form__label">${label} ${req}</label>
-      <input class="form__input" type="${type}" name="${name}" value="${escapeHtml(value || '')}" placeholder="${ph}" ${step} ${min} ${max}>
-    </div>`;
-  };
-
-  detailBody.innerHTML = `
-    <form id="editForm">
-      ${field('Name', 'name', item.name, 'text', { required: true })}
-      <div class="form__row">
-        ${field('Category', 'category', item.category, 'select-category', { required: true })}
-        ${field('Status', 'status', item.status, 'select-status')}
-      </div>
-      ${field('Description', 'description', item.description, 'textarea', { placeholder: 'What does it do?' })}
-      ${field('Business Impact', 'business_impact', item.business_impact, 'textarea', { placeholder: 'Why does it matter?' })}
-      ${field('Outcome', 'outcome', item.outcome, 'textarea', { placeholder: 'What changes when this ships?', rows: 2 })}
-      ${field('Success Metric', 'success_metric', item.success_metric, 'text', { placeholder: 'How will you measure success?' })}
-      <div class="form__row">
-        ${field('Impact', 'impact_score', item.impact_score, 'number', { min: 0, max: 10, step: 0.1 })}
-        ${field('Ease', 'ease_score', item.ease_score, 'number', { min: 0, max: 10, step: 0.1 })}
-        ${field('Priority', 'priority_score', item.priority_score, 'number', { min: 0, max: 10, step: 0.1 })}
-      </div>
-      <div class="form__row">
-        ${field('Build Time', 'build_time', item.build_time, 'text', { placeholder: 'e.g. 3-4 hrs' })}
-        ${field('Expected Delivery', 'expected_delivery', item.expected_delivery || '', 'date')}
-      </div>
-      <div class="form__row">
-        ${field('Dependencies', 'dependencies', item.dependencies, 'text', { placeholder: 'e.g. #14, #18' })}
-        ${field('Owner', 'owner', item.owner, 'text', { placeholder: 'Zev' })}
-      </div>
-    </form>
-  `;
-
-  renderDetailFooter(true);
-
-  // Focus first field
-  const firstInput = detailBody.querySelector('[name="name"]');
-  if (firstInput) firstInput.focus();
+// ───── Inline Editing ─────
+function attachEditableHandlers() {
+  detailBody.querySelectorAll('.editable').forEach(el => {
+    const fieldName = el.dataset.field;
+    el.addEventListener('click', () => activateInlineEdit(el, fieldName));
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activateInlineEdit(el, fieldName);
+      }
+    });
+  });
 }
 
-function cancelEdit() {
-  if (!currentDetailItem) return;
-  isEditMode = false;
-  renderDetailView(currentDetailItem);
-  renderDetailFooter(false);
-  detailTitle.textContent = currentDetailItem.name;
-}
+function activateInlineEdit(wrapperEl, fieldName) {
+  if (activeEditField === fieldName) return;
 
-async function saveEdit() {
-  const form = $('editForm');
-  if (!form) return;
-
-  // Clear previous errors
-  form.querySelectorAll('.form__error').forEach(e => e.remove());
-  form.querySelectorAll('.form__input--error, .form__textarea--error, .form__select--error')
-    .forEach(e => e.classList.remove('form__input--error', 'form__textarea--error', 'form__select--error'));
-
-  const fd = new FormData(form);
-  const data = {};
-  for (const [key, val] of fd.entries()) {
-    data[key] = val.trim();
+  // Blur any active edit first
+  if (activeEditField) {
+    const activeInput = detailBody.querySelector('.editable--active input, .editable--active textarea, .editable--active select');
+    if (activeInput) activeInput.blur();
   }
 
-  // Validate
-  let hasErrors = false;
-  function addError(name, msg) {
-    hasErrors = true;
-    const input = form.querySelector(`[name="${name}"]`);
-    if (input) {
-      const cls = input.tagName === 'TEXTAREA' ? 'form__textarea--error'
-        : input.tagName === 'SELECT' ? 'form__select--error'
-        : 'form__input--error';
-      input.classList.add(cls);
-      const errEl = document.createElement('div');
-      errEl.className = 'form__error';
-      errEl.textContent = msg;
-      input.parentNode.appendChild(errEl);
+  const config = EDITABLE_FIELDS[fieldName];
+  if (!config) return;
+
+  const currentValue = currentDetailItem[fieldName] || '';
+  activeEditField = fieldName;
+  wrapperEl.classList.add('editable--active');
+
+  let inputHtml;
+  if (config.type === 'select' && config.options === 'status') {
+    inputHtml = `<select class="editable__select" data-field="${fieldName}">${statusOptions(currentValue)}</select>`;
+  } else if (config.type === 'textarea') {
+    inputHtml = `<textarea class="editable__textarea" data-field="${fieldName}" placeholder="${config.placeholder || ''}" rows="3">${escapeHtml(currentValue)}</textarea>`;
+  } else if (config.type === 'date') {
+    inputHtml = `<input class="editable__input" type="date" data-field="${fieldName}" value="${escapeHtml(currentValue || '')}">`;
+  } else {
+    inputHtml = `<input class="editable__input" type="text" data-field="${fieldName}" value="${escapeHtml(currentValue)}" placeholder="${config.placeholder || ''}">`;
+  }
+
+  wrapperEl.innerHTML = inputHtml;
+  const input = wrapperEl.querySelector('input, textarea, select');
+  input.focus();
+  if (input.type === 'text') input.select();
+
+  input.addEventListener('blur', () => {
+    const newValue = input.value.trim();
+    handleInlineSave(wrapperEl, fieldName, newValue, currentValue);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      revertInlineEdit(wrapperEl, fieldName);
+      return;
     }
-  }
-
-  if (!data.name) addError('name', 'Name is required');
-  ['impact_score', 'ease_score', 'priority_score'].forEach(f => {
-    if (data[f] !== '') {
-      const v = parseFloat(data[f]);
-      if (isNaN(v) || v < 0 || v > 10) addError(f, 'Must be 0-10');
-      else data[f] = v;
-    } else {
-      data[f] = 0;
+    if (e.key === 'Enter' && config.type !== 'textarea') {
+      e.preventDefault();
+      input.blur();
     }
   });
 
-  // Convert empty date to null
-  if (!data.expected_delivery) data.expected_delivery = null;
+  if (config.type === 'select') {
+    input.addEventListener('change', () => input.blur());
+  }
+}
 
-  if (hasErrors) return;
+function revertInlineEdit(wrapperEl, fieldName) {
+  activeEditField = null;
+  wrapperEl.classList.remove('editable--active');
+  wrapperEl.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, currentDetailItem)}</div>`;
+}
 
-  // Save
-  const saveBtn = $('editSave');
+function handleInlineSave(wrapperEl, fieldName, newValue, oldValue) {
+  activeEditField = null;
+  const oldNorm = oldValue || '';
+  const newNorm = newValue || '';
+
+  if (oldNorm === newNorm) {
+    revertInlineEdit(wrapperEl, fieldName);
+    return;
+  }
+
+  wrapperEl.classList.remove('editable--active');
+  wrapperEl.classList.add('editable--saving');
+  const previewItem = { ...currentDetailItem, [fieldName]: newValue || null };
+  wrapperEl.innerHTML = `<div class="editable__display editable__saving-indicator">
+    <span class="editable__spinner"></span>
+    ${getFieldDisplayHtml(fieldName, previewItem)}
+  </div>`;
+
+  saveQueue = saveQueue.then(() => executeInlineSave(wrapperEl, fieldName, newValue, oldValue));
+}
+
+async function executeInlineSave(wrapperEl, fieldName, newValue, oldValue) {
+  currentDetailItem[fieldName] = newValue || null;
+
   try {
-    saveBtn.classList.add('btn--loading');
-    saveBtn.disabled = true;
-    const updated = await apiUpdateItem(currentDetailItem.id, data);
+    const payload = { ...currentDetailItem, _edited_by: 'Zev' };
+    delete payload.edit_history;
+
+    const updated = await apiUpdateItem(currentDetailItem.id, payload);
     syncItemInList(updated);
     currentDetailItem = updated;
-    isEditMode = false;
-    renderDetailView(updated);
-    renderDetailFooter(false);
-    detailTitle.textContent = updated.name;
-    applyFilters();
-    showToast('Changes saved');
-  } catch (err) {
-    showToast(`Save failed: ${err.message}`, 'error');
-  } finally {
-    if (saveBtn) {
-      saveBtn.classList.remove('btn--loading');
-      saveBtn.disabled = false;
+
+    wrapperEl.classList.remove('editable--saving');
+    wrapperEl.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, updated)}</div>`;
+
+    if (fieldName === 'status') {
+      rerenderDateFields(updated);
     }
+
+    applyFilters();
+    showToast(`Updated ${fieldName.replace(/_/g, ' ')}`);
+  } catch (err) {
+    currentDetailItem[fieldName] = oldValue;
+    wrapperEl.classList.remove('editable--saving');
+    wrapperEl.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, currentDetailItem)}</div>`;
+    showToast(`Save failed: ${err.message}`, 'error');
   }
+}
+
+function rerenderDateFields(item) {
+  ['start_date', 'completed_date', 'expected_delivery'].forEach(fieldName => {
+    const el = detailBody.querySelector(`.editable[data-field="${fieldName}"]`);
+    if (el && !el.classList.contains('editable--active')) {
+      el.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, item)}</div>`;
+    }
+  });
 }
 
 // ───── Delete ─────
@@ -898,10 +913,12 @@ addSubmit.addEventListener('click', async () => {
 
 // ───── Keyboard Shortcuts ─────
 document.addEventListener('keydown', (e) => {
-  // Escape closes modals / cancels edit
+  // Escape: cancel inline edit → close detail → close add modal
   if (e.key === 'Escape') {
-    if (isEditMode) {
-      cancelEdit();
+    if (activeEditField) {
+      const activeWrapper = detailBody.querySelector(`.editable--active`);
+      if (activeWrapper) revertInlineEdit(activeWrapper, activeEditField);
+      else activeEditField = null;
     } else if (detailModal.classList.contains('active')) {
       closeDetail();
     } else if (addModal.classList.contains('active')) {
@@ -922,13 +939,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && addModal.classList.contains('active') && e.target.tagName !== 'TEXTAREA') {
     e.preventDefault();
     addSubmit.click();
-  }
-
-  // Enter in edit form saves
-  if (e.key === 'Enter' && isEditMode && e.target.tagName !== 'TEXTAREA') {
-    e.preventDefault();
-    const saveBtn = $('editSave');
-    if (saveBtn) saveBtn.click();
   }
 });
 

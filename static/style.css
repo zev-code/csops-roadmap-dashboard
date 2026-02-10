@@ -807,6 +807,116 @@ body.dark .kanban__column[data-status="NEXT"] .kanban__column-count {
   transition: all var(--transition);
 }
 
+/* Meta badge muted variant */
+.detail__meta-badge--muted {
+  border: 1px dashed var(--border-primary);
+  background: transparent;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ───── Inline Editable Fields ───── */
+.editable {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.editable:hover {
+  background: var(--bg-badge);
+}
+
+.editable:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+
+.editable--active {
+  background: transparent;
+  cursor: default;
+}
+
+.editable--active:hover {
+  background: transparent;
+}
+
+.editable--saving {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.editable__input,
+.editable__textarea,
+.editable__select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--green);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  box-shadow: 0 0 0 3px var(--green-subtle);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editable__textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.editable__select {
+  cursor: pointer;
+}
+
+.editable__spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.editable__saving-indicator {
+  display: flex;
+  align-items: center;
+}
+
+/* ───── Trash Icon Button ───── */
+.btn--icon-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.btn--icon-danger:hover {
+  background: var(--coral-subtle);
+  color: var(--coral);
+}
+
+.btn--icon-danger:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
 /* ───── Quick-Add Modal Form ───── */
 .form__group {
   margin-bottom: 16px;
