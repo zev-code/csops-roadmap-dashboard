@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T13:56:59Z",
+  "last_updated": "2026-02-10T14:04:43Z",
   "items": [
     {
       "id": 1,
@@ -1204,7 +1204,7 @@
     {
       "id": 50,
       "name": "test",
-      "category": "Uncategorized",
+      "category": "CS Enablement",
       "description": "",
       "business_impact": "",
       "outcome": "TBD - define after initial build",
@@ -1237,6 +1237,13 @@
           "field": "status",
           "old_value": "DONE",
           "new_value": "IN_PROGRESS",
+          "edited_by": "Zev"
+        },
+        {
+          "timestamp": "2026-02-10T14:04:43Z",
+          "field": "category",
+          "old_value": "Uncategorized",
+          "new_value": "CS Enablement",
           "edited_by": "Zev"
         }
       ]
