@@ -1,15 +1,19 @@
 [Unit]
-Description=CS Ops Roadmap Dashboard
+Description=CS Ops Roadmap Dashboard (Flask)
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/csops-roadmap-dashboard
-Environment=PATH=/opt/csops-roadmap-dashboard/venv/bin
-ExecStart=/opt/csops-roadmap-dashboard/venv/bin/python api/app.py
+Group=www-data
+WorkingDirectory=/var/www/csops-roadmap
+ExecStart=/usr/bin/python3 /var/www/csops-roadmap/api/app.py
 Restart=always
-RestartSec=5
+RestartSec=3
+Environment=FLASK_ENV=production
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=csops-roadmap
 
 [Install]
 WantedBy=multi-user.target
