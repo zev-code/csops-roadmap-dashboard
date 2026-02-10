@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T19:45:12Z",
+  "last_updated": "2026-02-10T19:49:07Z",
   "items": [
     {
       "id": 1,
@@ -1597,11 +1597,44 @@
           "edited_by": "Claude Code"
         }
       ]
+    },
+    {
+      "id": 62,
+      "name": "Direct API Integration for Conversational Roadmap Management",
+      "category": "Product Intelligence",
+      "description": "Add /api/roadmap/items/create endpoint with API key auth. Enables Claude Browser to create roadmap items directly from conversation without switching to Claude Code. User says 'add to roadmap' and item is created instantly.",
+      "business_impact": "Eliminates context switching, enables conversational roadmap management, reduces friction from 5 steps to 1",
+      "outcome": "TBD - define after initial build",
+      "success_metric": "Zero manual item creation, all items added via conversation",
+      "impact_score": 9.0,
+      "ease_score": 7.0,
+      "priority_score": 9.0,
+      "build_time": "20 minutes",
+      "phase": "",
+      "expected_delivery": "2026-02-10",
+      "status": "NEXT",
+      "start_date": null,
+      "completed_date": null,
+      "dependencies": "",
+      "votes": [],
+      "vote_count": 0,
+      "n8n_workflows": [],
+      "owner": "Claude Code",
+      "added_date": "2026-02-10",
+      "edit_history": [
+        {
+          "timestamp": "2026-02-10T19:49:07Z",
+          "field": "status",
+          "old_value": null,
+          "new_value": "NEXT",
+          "edited_by": "Claude Code"
+        }
+      ]
     }
   ],
   "backlog": [],
   "metadata": {
-    "total_items": 61,
+    "total_items": 62,
     "categories": [
       "CS Enablement",
       "CS Intelligence",
