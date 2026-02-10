@@ -145,14 +145,14 @@ body {
   white-space: nowrap;
 }
 
-.header__center {
+.header__right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 }
 
 .header__updated {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--text-muted);
   transition: color var(--transition);

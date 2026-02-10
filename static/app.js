@@ -421,7 +421,7 @@ async function init() {
 
     if (roadmapData.last_updated) {
       const d = new Date(roadmapData.last_updated);
-      lastUpdated.textContent = `Updated ${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      lastUpdated.textContent = `Updated ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     }
 
     // Remove loading, render
