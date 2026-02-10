@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T16:13:58Z",
+  "last_updated": "2026-02-10T16:14:00Z",
   "items": [
     {
       "id": 1,
@@ -1353,16 +1353,24 @@
       "build_time": "",
       "phase": "",
       "expected_delivery": null,
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "start_date": "2026-02-10",
-      "completed_date": null,
+      "completed_date": "2026-02-10",
       "dependencies": "",
       "votes": [],
       "vote_count": 0,
       "n8n_workflows": [],
       "owner": "Zev",
       "added_date": "2026-02-10",
-      "edit_history": []
+      "edit_history": [
+        {
+          "timestamp": "2026-02-10T16:14:00Z",
+          "field": "status",
+          "old_value": "IN_PROGRESS",
+          "new_value": "DONE",
+          "edited_by": "Zev"
+        }
+      ]
     }
   ],
   "backlog": [],
