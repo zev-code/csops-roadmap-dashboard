@@ -111,12 +111,13 @@ jobs:
         env:
           DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY }}
           DEPLOY_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_HOST: ${{ secrets.VPS_HOST }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 137.184.166.254 >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "${DEPLOY_USER}@137.184.166.254" '
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" '
             cd /var/www/csops-roadmap &&
             git pull origin main &&
             sudo systemctl restart csops-roadmap &&

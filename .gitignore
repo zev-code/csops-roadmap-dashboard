@@ -13,3 +13,4 @@ test-screenshot.png
 test-results.json
 test-site.mjs
 tests/screenshots/
+.claude/settings.local.json

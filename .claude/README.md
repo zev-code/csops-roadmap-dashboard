@@ -2,7 +2,7 @@
 
 ## Project: CS Ops Automation Roadmap Dashboard
 - **Production:** https://cs.dashq.io
-- **VPS:** 137.184.166.254
+- **VPS:** (IP stored in GitHub secret `VPS_HOST`)
 - **Stack:** Flask + vanilla JS kanban board
 
 ## Before Making Changes

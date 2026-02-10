@@ -2,7 +2,7 @@
 
 **Domain:** cs.dashq.io
 **VPS:** DigitalOcean Ubuntu droplet (dashq-bridge)
-**IP:** 137.184.166.254
+**IP:** <VPS_IP>
 
 ---
 
@@ -26,7 +26,7 @@ Browser → cs.dashq.io (nginx :80/:443)
 
 - Ubuntu 24.04 VPS (dashq-bridge droplet)
 - SSH access (root or sudo user)
-- Domain cs.dashq.io already pointing to 137.184.166.254
+- Domain cs.dashq.io already pointing to <VPS_IP>
 
 ---
 
@@ -35,7 +35,7 @@ Browser → cs.dashq.io (nginx :80/:443)
 ### 1. SSH into VPS
 
 ```bash
-ssh root@137.184.166.254
+ssh root@<VPS_IP>
 ```
 
 ### 2. Update system
@@ -151,13 +151,13 @@ Open browser: https://cs.dashq.io (should see padlock)
 ### Method 1 — Deploy script (from local machine)
 
 ```bash
-ssh root@137.184.166.254 "bash /var/www/csops-roadmap/deploy/deploy.sh"
+ssh root@<VPS_IP> "bash /var/www/csops-roadmap/deploy/deploy.sh"
 ```
 
 ### Method 2 — Manual
 
 ```bash
-ssh root@137.184.166.254
+ssh root@<VPS_IP>
 cd /var/www/csops-roadmap
 git pull origin main
 sudo systemctl restart csops-roadmap
