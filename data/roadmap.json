@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T14:27:11Z",
+  "last_updated": "2026-02-10T14:27:13Z",
   "items": [
     {
       "id": 1,
@@ -1353,9 +1353,9 @@
       "build_time": "",
       "phase": "",
       "expected_delivery": null,
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "start_date": "2026-02-10",
-      "completed_date": null,
+      "completed_date": "2026-02-10",
       "dependencies": "",
       "votes": [],
       "vote_count": 0,
@@ -1368,6 +1368,13 @@
           "field": "status",
           "old_value": "BACKLOG",
           "new_value": "IN_PROGRESS",
+          "edited_by": "Zev"
+        },
+        {
+          "timestamp": "2026-02-10T14:27:13Z",
+          "field": "status",
+          "old_value": "IN_PROGRESS",
+          "new_value": "DONE",
           "edited_by": "Zev"
         }
       ]
