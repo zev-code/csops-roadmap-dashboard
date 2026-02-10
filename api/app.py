@@ -75,6 +75,7 @@ def make_item(data, item_id):
         'priority_score': float(data.get('priority_score', 0)),
         'build_time': data.get('build_time', ''),
         'phase': data.get('phase', ''),
+        'expected_delivery': data.get('expected_delivery'),
         'status': data.get('status', 'BACKLOG'),
         'start_date': data.get('start_date'),
         'completed_date': data.get('completed_date'),
@@ -199,6 +200,8 @@ def update_item(item_id):
         updated['start_date'] = existing.get('start_date')
     if 'completed_date' not in body:
         updated['completed_date'] = existing.get('completed_date')
+    if 'expected_delivery' not in body:
+        updated['expected_delivery'] = existing.get('expected_delivery')
     apply_status_dates(updated, updated['status'])
     data['items'][idx] = updated
     save_roadmap(data)

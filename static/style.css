@@ -569,6 +569,32 @@ body {
   flex-shrink: 0;
 }
 
+/* ───── Overdue indicator ───── */
+.card__overdue {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #DC2626;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(220, 38, 38, 0.08);
+  margin-bottom: 4px;
+}
+
+body.dark .card__overdue {
+  color: #FCA5A5;
+  background: rgba(252, 165, 165, 0.12);
+}
+
+.detail__value--overdue {
+  color: #DC2626;
+  font-weight: 600;
+}
+
+body.dark .detail__value--overdue {
+  color: #FCA5A5;
+}
+
 /* ───── Status-specific column accents ───── */
 .kanban__column[data-status="DONE"] .kanban__column-count {
   background: var(--green-subtle);

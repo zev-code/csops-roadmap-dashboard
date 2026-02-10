@@ -181,6 +181,28 @@ function isTBD(val) {
   return !val || val === 'TBD' || (typeof val === 'string' && val.startsWith('TBD'));
 }
 
+function formatExpectedDelivery(item) {
+  if (!item.expected_delivery) {
+    return `<span class="detail__value detail__value--muted">Not set</span>`;
+  }
+  const delivery = new Date(item.expected_delivery + 'T00:00:00');
+  const formatted = delivery.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  if (item.status === 'IN_PROGRESS') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffMs = today - delivery;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) {
+      return `<span class="detail__value detail__value--overdue">\u26A0\uFE0F ${escapeHtml(formatted)} (${diffDays} day${diffDays !== 1 ? 's' : ''} overdue)</span>`;
+    }
+  }
+  if (item.status === 'DONE') {
+    return `<span class="detail__value">${escapeHtml(formatted)}</span>`;
+  }
+  return `<span class="detail__value">${escapeHtml(formatted)}</span>`;
+}
+
 function syncItemInList(updated) {
   const idx = allItems.findIndex(i => i.id === updated.id);
   if (idx !== -1) allItems[idx] = updated;
@@ -283,12 +305,24 @@ function createCard(item) {
     ? `<span class="card__priority">\u2B50 ${item.priority_score}</span>`
     : '';
 
+  let overdueHtml = '';
+  if (item.status === 'IN_PROGRESS' && item.expected_delivery) {
+    const delivery = new Date(item.expected_delivery + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - delivery) / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) {
+      overdueHtml = `<span class="card__overdue">\u26A0\uFE0F ${diffDays}d overdue</span>`;
+    }
+  }
+
   card.innerHTML = `
     <div class="card__top">
       <span class="card__id">#${item.id}</span>
       ${priorityHtml}
     </div>
     <div class="card__title">${escapeHtml(item.name)}</div>
+    ${overdueHtml}
     <div class="card__bottom">
       <span class="card__category" style="background:${catStyle.bg};color:${catStyle.text}">
         ${escapeHtml(item.category)}
@@ -500,7 +534,6 @@ function renderDetailView(item) {
       <span class="detail__meta-badge" style="background:${catStyle.bg};color:${catStyle.text}">${escapeHtml(item.category)}</span>
       <span class="detail__meta-badge">#${item.id}</span>
       <span class="detail__meta-badge">${STATUS_LABELS[item.status] || item.status}</span>
-      ${item.phase ? `<span class="detail__meta-badge">${escapeHtml(item.phase)}</span>` : ''}
       ${item.build_time ? `<span class="detail__meta-badge">${escapeHtml(item.build_time)}</span>` : ''}
     </div>
 
@@ -538,6 +571,11 @@ function renderDetailView(item) {
         <div class="detail__label">Completed Date</div>
         ${valOrMuted(item.completed_date)}
       </div>
+    </div>
+
+    <div class="detail__section">
+      <div class="detail__label">Expected Delivery</div>
+      ${formatExpectedDelivery(item)}
     </div>
 
     <div class="detail__section">
@@ -647,7 +685,7 @@ function enterEditMode(item) {
       </div>
       <div class="form__row">
         ${field('Build Time', 'build_time', item.build_time, 'text', { placeholder: 'e.g. 3-4 hrs' })}
-        ${field('Phase', 'phase', item.phase, 'text', { placeholder: 'e.g. Week 2' })}
+        ${field('Expected Delivery', 'expected_delivery', item.expected_delivery || '', 'date')}
       </div>
       <div class="form__row">
         ${field('Dependencies', 'dependencies', item.dependencies, 'text', { placeholder: 'e.g. #14, #18' })}
@@ -713,6 +751,9 @@ async function saveEdit() {
       data[f] = 0;
     }
   });
+
+  // Convert empty date to null
+  if (!data.expected_delivery) data.expected_delivery = null;
 
   if (hasErrors) return;
 
@@ -837,6 +878,7 @@ addSubmit.addEventListener('click', async () => {
   ['impact_score', 'ease_score', 'priority_score'].forEach(f => {
     if (data[f]) data[f] = parseFloat(data[f]);
   });
+  if (!data.expected_delivery) data.expected_delivery = null;
 
   try {
     addSubmit.classList.add('btn--loading');
