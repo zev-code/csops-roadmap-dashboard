@@ -49,7 +49,6 @@ const EDITABLE_FIELDS = {
 };
 
 // ───── Confetti Celebration ─────
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let doneCountToday = 0;
 const todayKey = new Date().toISOString().slice(0, 10);
 if (localStorage.getItem('confetti_date') !== todayKey) {
@@ -59,6 +58,20 @@ if (localStorage.getItem('confetti_date') !== todayKey) {
 doneCountToday = parseInt(localStorage.getItem('confetti_done_count') || '0', 10);
 
 const CONFETTI_COLORS = ['#13D77A', '#13D77A', '#13D77A', '#FFA987', '#80D7DB', '#F7EE6C'];
+
+// Create a dedicated confetti canvas to guarantee z-index
+let confettiCanvas = null;
+let myConfetti = null;
+function getConfetti() {
+  if (typeof confetti !== 'function') return null;
+  if (!confettiCanvas) {
+    confettiCanvas = document.createElement('canvas');
+    confettiCanvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;';
+    document.body.appendChild(confettiCanvas);
+    myConfetti = confetti.create(confettiCanvas, { resize: true });
+  }
+  return myConfetti;
+}
 
 function celebrateDone(item, originEl) {
   // ARIA announce for screen readers
@@ -70,7 +83,8 @@ function celebrateDone(item, originEl) {
   document.body.appendChild(announce);
   setTimeout(() => announce.remove(), 2000);
 
-  if (typeof confetti !== 'function') return;
+  const fire = getConfetti();
+  if (!fire) return;
 
   let x = 0.5, y = 0.3;
   if (originEl) {
@@ -84,7 +98,7 @@ function celebrateDone(item, originEl) {
   const particleCount = isHighPriority ? 200 : 120;
 
   try {
-    confetti({
+    fire({
       particleCount,
       spread: isHighPriority ? 100 : 70,
       origin: { x, y },
@@ -98,15 +112,15 @@ function celebrateDone(item, originEl) {
     // Side cannons for first completion of the day
     if (isFirstToday) {
       setTimeout(() => {
-        confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: CONFETTI_COLORS, gravity: 0.8, ticks: 200 });
-        confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: CONFETTI_COLORS, gravity: 0.8, ticks: 200 });
+        fire({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: CONFETTI_COLORS, gravity: 0.8, ticks: 200 });
+        fire({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: CONFETTI_COLORS, gravity: 0.8, ticks: 200 });
       }, 250);
     }
 
     // High-priority bonus burst
     if (isHighPriority) {
       setTimeout(() => {
-        confetti({ particleCount: 50, spread: 120, origin: { x, y: y - 0.1 }, colors: CONFETTI_COLORS, startVelocity: 25, gravity: 0.6, shapes: ['star'], scalar: 1.3, ticks: 200 });
+        fire({ particleCount: 50, spread: 120, origin: { x, y: y - 0.1 }, colors: CONFETTI_COLORS, startVelocity: 25, gravity: 0.6, shapes: ['star'], scalar: 1.3, ticks: 200 });
       }, 300);
     }
   } catch (err) {
@@ -329,12 +343,14 @@ function applyFilters() {
     return true;
   });
 
+  // Recently moved/created items float to top within their column
+  const recency = (a, b) => (b._movedAt || 0) - (a._movedAt || 0);
   const sorters = {
-    priority: (a, b) => (b.priority_score || 0) - (a.priority_score || 0),
-    id: (a, b) => a.id - b.id,
-    name: (a, b) => a.name.localeCompare(b.name),
-    impact: (a, b) => (b.impact_score || 0) - (a.impact_score || 0),
-    ease: (a, b) => (b.ease_score || 0) - (a.ease_score || 0),
+    priority: (a, b) => recency(a, b) || (b.priority_score || 0) - (a.priority_score || 0),
+    id: (a, b) => recency(a, b) || a.id - b.id,
+    name: (a, b) => recency(a, b) || a.name.localeCompare(b.name),
+    impact: (a, b) => recency(a, b) || (b.impact_score || 0) - (a.impact_score || 0),
+    ease: (a, b) => recency(a, b) || (b.ease_score || 0) - (a.ease_score || 0),
   };
   filteredItems.sort(sorters[sort] || sorters.priority);
 
@@ -561,6 +577,7 @@ async function handleDrop(item, newStatus) {
 
   // Optimistic update
   item.status = newStatus;
+  item._movedAt = Date.now();
   applyFilters();
   showToast(`Moved to ${STATUS_LABELS[newStatus]}`);
 
@@ -1166,8 +1183,11 @@ async function executeInlineSave(wrapperEl, fieldName, newValue, oldValue) {
     syncItemInList(updated);
     currentDetailItem = updated;
 
-    if (fieldName === 'status' && newValue === 'DONE' && oldValue !== 'DONE') {
-      celebrateDone(updated, detailModal.querySelector('.modal'));
+    if (fieldName === 'status') {
+      updated._movedAt = Date.now();
+      if (newValue === 'DONE' && oldValue !== 'DONE') {
+        celebrateDone(updated, detailModal.querySelector('.modal'));
+      }
     }
 
     // Re-render entire detail view to refresh metadata bar, alerts, activity log
@@ -1285,7 +1305,8 @@ addSubmit.addEventListener('click', async () => {
     addSubmit.classList.add('btn--loading');
     addSubmit.disabled = true;
     const created = await apiCreateItem(data);
-    allItems.push(created);
+    created._movedAt = Date.now();
+    allItems.unshift(created);
     closeAddModal();
     applyFilters();
     showToast(`Created: ${created.name}`);
