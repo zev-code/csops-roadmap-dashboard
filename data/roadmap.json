@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T14:04:43Z",
+  "last_updated": "2026-02-10T14:05:06Z",
   "items": [
     {
       "id": 1,
@@ -1214,7 +1214,7 @@
       "priority_score": 0.0,
       "build_time": "",
       "phase": "",
-      "expected_delivery": null,
+      "expected_delivery": "2026-02-10",
       "status": "IN_PROGRESS",
       "start_date": "2026-02-10",
       "completed_date": "2026-02-10",
@@ -1244,6 +1244,13 @@
           "field": "category",
           "old_value": "Uncategorized",
           "new_value": "CS Enablement",
+          "edited_by": "Zev"
+        },
+        {
+          "timestamp": "2026-02-10T14:05:06Z",
+          "field": "expected_delivery",
+          "old_value": null,
+          "new_value": "2026-02-10",
           "edited_by": "Zev"
         }
       ]
