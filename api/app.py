@@ -14,9 +14,10 @@ VALID_STATUSES = ['BACKLOG', 'PLANNED', 'NEXT', 'IN_PROGRESS', 'DONE']
 REQUIRED_FIELDS = ['name']
 ROADMAP_FILE = Config.ROADMAP_FILE
 TRACKED_FIELDS = [
-    'status', 'build_time', 'description', 'business_impact',
-    'outcome', 'success_metric', 'start_date', 'completed_date',
-    'expected_delivery', 'owner',
+    'status', 'category', 'build_time', 'description', 'business_impact',
+    'outcome', 'success_metric', 'impact_score', 'ease_score',
+    'priority_score', 'start_date', 'completed_date',
+    'expected_delivery', 'owner', 'dependencies',
 ]
 
 

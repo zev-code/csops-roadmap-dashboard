@@ -1,0 +1,122 @@
+name: Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Unit & Integration Tests
+  # ---------------------------------------------------------------------------
+  test:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: "🔍 Code Quality — Python syntax"
+        run: python -c "
+          import ast, os, sys;
+          errors=[];
+          [errors.append(f'{r}/{f}') for r,_,fs in os.walk('.') if '.git' not in r for f in fs if f.endswith('.py') and not _try_parse(r,f,errors)];
+          " || python -m py_compile api/app.py api/config.py
+
+      - name: "🗄️ Data Integrity Tests"
+        run: pytest tests/test_data.py -v --tb=short
+
+      - name: "⚙️ Backend API Tests"
+        run: pytest tests/test_api.py -v --tb=short
+
+      - name: "🔒 Security Tests"
+        run: pytest tests/test_security.py -v --tb=short
+
+      - name: "📊 Full Test Suite with Coverage"
+        run: |
+          pytest tests/ -m "not browser and not visual" \
+            -v --tb=short \
+            --cov=api --cov-report=term-missing --cov-report=html
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  # ---------------------------------------------------------------------------
+  # Browser Tests (on PR only, to save CI minutes)
+  # ---------------------------------------------------------------------------
+  browser-test:
+    name: Browser Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-playwright playwright
+          playwright install chromium --with-deps
+
+      - name: "🌐 Browser Tests"
+        run: pytest tests/test_browser.py -v --tb=short
+        env:
+          GIT_AUTO_COMMIT: 'false'
+
+      - name: "🎨 Visual Tests"
+        run: pytest tests/test_visual.py -v --tb=short
+        env:
+          GIT_AUTO_COMMIT: 'false'
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-screenshots
+          path: tests/screenshots/
+
+  # ---------------------------------------------------------------------------
+  # Deploy (only on push to main, after tests pass)
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 137.184.166.254
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/csops-roadmap
+            git pull origin main
+            sudo systemctl restart csops-roadmap
+            sleep 2
+            curl -sf http://127.0.0.1:5000/api/health || exit 1
+            echo "Deploy successful — health check passed"

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T16:14:11Z",
+  "last_updated": "2026-02-10T16:56:27Z",
   "items": [
     {
       "id": 1,
@@ -384,7 +384,8 @@
       "n8n_workflows": [],
       "owner": "Zev",
       "added_date": "2026-02-10",
-      "expected_delivery": null
+      "expected_delivery": null,
+      "edit_history": []
     },
     {
       "id": 16,

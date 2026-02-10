@@ -4,3 +4,12 @@ __pycache__/
 .DS_Store
 venv/
 *.log
+node_modules/
+.coverage
+htmlcov/
+nul
+*.code-workspace
+test-screenshot.png
+test-results.json
+test-site.mjs
+tests/screenshots/
