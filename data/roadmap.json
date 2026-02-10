@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T14:27:13Z",
+  "last_updated": "2026-02-10T14:27:21Z",
   "items": [
     {
       "id": 1,
@@ -1338,51 +1338,11 @@
           "edited_by": "Zev"
         }
       ]
-    },
-    {
-      "id": 51,
-      "name": "test 2",
-      "category": "Uncategorized",
-      "description": "",
-      "business_impact": "",
-      "outcome": "TBD - define after initial build",
-      "success_metric": "TBD",
-      "impact_score": 0.0,
-      "ease_score": 0.0,
-      "priority_score": 0.0,
-      "build_time": "",
-      "phase": "",
-      "expected_delivery": null,
-      "status": "DONE",
-      "start_date": "2026-02-10",
-      "completed_date": "2026-02-10",
-      "dependencies": "",
-      "votes": [],
-      "vote_count": 0,
-      "n8n_workflows": [],
-      "owner": "Zev",
-      "added_date": "2026-02-10",
-      "edit_history": [
-        {
-          "timestamp": "2026-02-10T14:27:11Z",
-          "field": "status",
-          "old_value": "BACKLOG",
-          "new_value": "IN_PROGRESS",
-          "edited_by": "Zev"
-        },
-        {
-          "timestamp": "2026-02-10T14:27:13Z",
-          "field": "status",
-          "old_value": "IN_PROGRESS",
-          "new_value": "DONE",
-          "edited_by": "Zev"
-        }
-      ]
     }
   ],
   "backlog": [],
   "metadata": {
-    "total_items": 51,
+    "total_items": 50,
     "categories": [
       "CS Enablement",
       "CS Intelligence",
