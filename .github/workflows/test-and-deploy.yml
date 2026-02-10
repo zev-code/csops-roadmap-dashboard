@@ -107,10 +107,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: Deploy to VPS
+      - name: Setup SSH
         env:
           DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY }}
-          DEPLOY_USER: ${{ secrets.VPS_USER }}
           DEPLOY_HOST: ${{ secrets.VPS_HOST }}
         run: |
           mkdir -p ~/.ssh
@@ -118,11 +117,10 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keygen -lf ~/.ssh/deploy_key
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" '
-            cd /var/www/csops-roadmap &&
-            git pull origin main &&
-            sudo systemctl restart csops-roadmap &&
-            sleep 2 &&
-            curl -sf http://127.0.0.1:5000/api/health || exit 1
-            echo "Deploy successful — health check passed"
-          '
+
+      - name: Deploy to VPS
+        env:
+          DEPLOY_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" 'cd /var/www/csops-roadmap && git pull origin main && sudo systemctl restart csops-roadmap && sleep 2 && curl -sf http://127.0.0.1:5000/api/health || exit 1 && echo "Deploy successful"'
