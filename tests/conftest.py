@@ -107,6 +107,7 @@ def app(tmp_roadmap, monkeypatch):
     monkeypatch.setattr(cfg.Config, 'ROADMAP_FILE', tmp_roadmap)
     monkeypatch.setattr(cfg.Config, 'DATA_DIR', os.path.dirname(tmp_roadmap))
     monkeypatch.setattr(cfg.Config, 'GIT_AUTO_COMMIT', False)
+    monkeypatch.setattr(cfg.Config, 'ROADMAP_API_KEY', 'test-api-key-12345')
 
     # Reload the app module so it picks up the patched Config
     import app as app_module

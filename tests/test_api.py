@@ -245,3 +245,62 @@ class TestEditHistory:
         item = resp.get_json()
         history_fields = [h['field'] for h in item['edit_history']]
         assert 'category' in history_fields
+
+
+# ---------------------------------------------------------------------------
+# Authenticated API Create endpoint
+# ---------------------------------------------------------------------------
+
+class TestAPICreateEndpoint:
+    """Prevent: Authenticated create endpoint broken or insecure."""
+
+    API_KEY = 'test-api-key-12345'
+
+    def _auth_header(self):
+        return {'Authorization': f'Bearer {self.API_KEY}'}
+
+    def test_create_with_valid_key(self, client):
+        resp = client.post('/api/roadmap/items/create',
+                           json={'name': 'API Created Item'},
+                           headers=self._auth_header())
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert data['success'] is True
+        assert data['name'] == 'API Created Item'
+        assert 'id' in data
+
+    def test_create_no_auth_header(self, client):
+        resp = client.post('/api/roadmap/items/create',
+                           json={'name': 'Should Fail'})
+        assert resp.status_code == 401
+
+    def test_create_wrong_key(self, client):
+        resp = client.post('/api/roadmap/items/create',
+                           json={'name': 'Should Fail'},
+                           headers={'Authorization': 'Bearer wrong-key'})
+        assert resp.status_code == 403
+
+    def test_create_missing_name(self, client):
+        resp = client.post('/api/roadmap/items/create',
+                           json={'category': 'DevOps'},
+                           headers=self._auth_header())
+        assert resp.status_code == 400
+
+    def test_create_has_edit_history(self, client):
+        resp = client.post('/api/roadmap/items/create',
+                           json={'name': 'History Test', 'status': 'NEXT'},
+                           headers=self._auth_header())
+        new_id = resp.get_json()['id']
+        item_resp = client.get(f'/api/roadmap/items/{new_id}')
+        item = item_resp.get_json()
+        assert len(item['edit_history']) == 1
+        assert item['edit_history'][0]['new_value'] == 'NEXT'
+
+    def test_create_auto_dates_done(self, client):
+        resp = client.post('/api/roadmap/items/create',
+                           json={'name': 'Done Item', 'status': 'DONE'},
+                           headers=self._auth_header())
+        new_id = resp.get_json()['id']
+        item_resp = client.get(f'/api/roadmap/items/{new_id}')
+        item = item_resp.get_json()
+        assert item['completed_date'] is not None

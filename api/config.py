@@ -9,6 +9,7 @@ class Config:
     ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
     N8N_API_URL = os.getenv('N8N_API_URL')
     N8N_API_KEY = os.getenv('N8N_API_KEY')
+    ROADMAP_API_KEY = os.getenv('ROADMAP_API_KEY')
     DATA_DIR = os.getenv('DATA_DIR', os.path.join(os.path.dirname(__file__), '..', 'data'))
     ROADMAP_FILE = os.path.join(DATA_DIR, 'roadmap.json')
     GIT_AUTO_COMMIT = os.getenv('GIT_AUTO_COMMIT', 'true').lower() == 'true'

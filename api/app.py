@@ -1,6 +1,8 @@
+from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from config import Config
+import hmac
 import json
 import os
 import subprocess
@@ -183,6 +185,59 @@ def create_item():
     data['items'].append(item)
     save_roadmap(data)
     return jsonify(item), 201
+
+
+# --- API Key Auth ---
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = Config.ROADMAP_API_KEY
+        if not api_key:
+            return jsonify({'error': 'API key not configured on server'}), 500
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Missing Authorization header. Use: Bearer <api-key>'}), 401
+        token = auth_header[7:]
+        if not hmac.compare_digest(token, api_key):
+            return jsonify({'error': 'Invalid API key'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/api/roadmap/items/create', methods=['POST'])
+@require_api_key
+def api_create_item():
+    """Authenticated endpoint for external item creation (e.g. Claude Browser)."""
+    body = request.get_json(silent=True)
+    error = validate_item_input(body)
+    if error:
+        return jsonify({'error': error}), 400
+
+    data = load_roadmap()
+    new_id = next_id(data['items'])
+    item = make_item(body, new_id)
+    apply_status_dates(item, item['status'])
+
+    # Add creation edit_history entry
+    now_ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    item['edit_history'] = [{
+        'timestamp': now_ts,
+        'field': 'status',
+        'old_value': None,
+        'new_value': item['status'],
+        'edited_by': body.get('_edited_by', 'API'),
+    }]
+
+    data['items'].append(item)
+    save_roadmap(data)
+    return jsonify({
+        'success': True,
+        'id': new_id,
+        'name': item['name'],
+        'status': item['status'],
+        'url': f'https://cs.dashq.io',
+    }), 201
 
 
 @app.route('/api/roadmap/items/<int:item_id>', methods=['PUT'])
