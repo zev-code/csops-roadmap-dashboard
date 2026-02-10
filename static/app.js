@@ -32,15 +32,20 @@ const CATEGORY_COLORS = {
 
 const EDITABLE_FIELDS = {
   status:            { type: 'select', options: 'status' },
+  category:          { type: 'select', options: 'category' },
   build_time:        { type: 'text', placeholder: 'e.g. 3-4 hrs' },
   description:       { type: 'textarea', placeholder: 'What does it do?' },
   business_impact:   { type: 'textarea', placeholder: 'Why does it matter?' },
   outcome:           { type: 'textarea', placeholder: 'What changes when this ships?' },
   success_metric:    { type: 'text', placeholder: 'How will you measure success?' },
+  impact_score:      { type: 'number', placeholder: '0-10', min: 0, max: 10, step: 0.1 },
+  ease_score:        { type: 'number', placeholder: '0-10', min: 0, max: 10, step: 0.1 },
+  priority_score:    { type: 'number', placeholder: '0-10', min: 0, max: 10, step: 0.1 },
   start_date:        { type: 'date' },
   completed_date:    { type: 'date' },
   expected_delivery: { type: 'date' },
   owner:             { type: 'text', placeholder: 'e.g. Zev' },
+  dependencies:      { type: 'text', placeholder: 'e.g. Health Scoring (#18)' },
 };
 
 // ───── Confetti Celebration ─────
@@ -65,10 +70,9 @@ function celebrateDone(item, originEl) {
   document.body.appendChild(announce);
   setTimeout(() => announce.remove(), 2000);
 
-  if (prefersReducedMotion) return;
   if (typeof confetti !== 'function') return;
 
-  let x = 0.5, y = 0.5;
+  let x = 0.5, y = 0.3;
   if (originEl) {
     const rect = originEl.getBoundingClientRect();
     x = (rect.left + rect.width / 2) / window.innerWidth;
@@ -77,31 +81,36 @@ function celebrateDone(item, originEl) {
 
   const isHighPriority = item.priority_score > 8.0;
   const isFirstToday = doneCountToday === 0;
-  const particleCount = isHighPriority ? 150 : 80;
+  const particleCount = isHighPriority ? 200 : 120;
 
-  confetti({
-    particleCount,
-    spread: isHighPriority ? 80 : 60,
-    origin: { x, y },
-    colors: CONFETTI_COLORS,
-    gravity: 1.2,
-    decay: 0.92,
-    ticks: 90,
-  });
+  try {
+    confetti({
+      particleCount,
+      spread: isHighPriority ? 100 : 70,
+      origin: { x, y },
+      colors: CONFETTI_COLORS,
+      gravity: 0.8,
+      decay: 0.94,
+      ticks: 200,
+      startVelocity: 30,
+    });
 
-  if (isFirstToday) {
-    setTimeout(() => {
-      confetti({
-        particleCount: 40,
-        spread: 120,
-        origin: { x, y: y - 0.05 },
-        colors: CONFETTI_COLORS,
-        startVelocity: 20,
-        gravity: 0.8,
-        shapes: ['star'],
-        scalar: 1.2,
-      });
-    }, 300);
+    // Side cannons for first completion of the day
+    if (isFirstToday) {
+      setTimeout(() => {
+        confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: CONFETTI_COLORS, gravity: 0.8, ticks: 200 });
+        confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: CONFETTI_COLORS, gravity: 0.8, ticks: 200 });
+      }, 250);
+    }
+
+    // High-priority bonus burst
+    if (isHighPriority) {
+      setTimeout(() => {
+        confetti({ particleCount: 50, spread: 120, origin: { x, y: y - 0.1 }, colors: CONFETTI_COLORS, startVelocity: 25, gravity: 0.6, shapes: ['star'], scalar: 1.3, ticks: 200 });
+      }, 300);
+    }
+  } catch (err) {
+    console.error('[confetti] error:', err);
   }
 
   doneCountToday++;
@@ -585,27 +594,85 @@ async function moveCardWithKeyboard(item, direction) {
 function openDetail(item) {
   currentDetailItem = item;
   activeEditField = null;
+  // Clean up any leftover header badges from previous item
+  const oldBadges = detailModal.querySelector('.modal__header-badges');
+  if (oldBadges) oldBadges.remove();
   renderDetailView(item);
   renderDetailFooter();
   detailModal.classList.add('active');
 }
 
+// ───── Relative Time ─────
+function relativeTime(timestamp) {
+  if (!timestamp) return '';
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
+    date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// ───── Collapsible State ─────
+function isCollapsibleOpen(itemId, section) {
+  return sessionStorage.getItem(`collapse_${itemId}_${section}`) === 'open';
+}
+
+function setCollapsibleState(itemId, section, open) {
+  sessionStorage.setItem(`collapse_${itemId}_${section}`, open ? 'open' : 'closed');
+}
+
+// ───── Field Display ─────
 function getFieldDisplayHtml(fieldName, item) {
-  const valOrMuted = (val) => isTBD(val)
-    ? `<span class="detail__value detail__value--muted">${escapeHtml(val || 'TBD')}</span>`
-    : `<span class="detail__value">${escapeHtml(val)}</span>`;
+  const valOrMuted = (val, placeholder) => isTBD(val)
+    ? `<span class="detail__field-value detail__field-value--muted">${escapeHtml(placeholder || 'TBD')}</span>`
+    : `<span class="detail__field-value">${escapeHtml(val)}</span>`;
 
   switch (fieldName) {
     case 'status':
-      return `<span class="detail__meta-badge">${STATUS_LABELS[item.status] || item.status}</span>`;
+      return `<span class="detail__badge detail__badge--status">${STATUS_LABELS[item.status] || item.status}</span>`;
+    case 'category': {
+      const cs = getCategoryStyle(item.category);
+      return `<span class="detail__badge" style="background:${cs.bg};color:${cs.text}">${escapeHtml(item.category)}</span>`;
+    }
     case 'build_time':
       return item.build_time
-        ? `<span class="detail__meta-badge">${escapeHtml(item.build_time)}</span>`
-        : `<span class="detail__meta-badge detail__meta-badge--muted">+ Build Time</span>`;
+        ? `<span class="detail__field-value">${escapeHtml(item.build_time)}</span>`
+        : `<span class="detail__field-value detail__field-value--muted">Not estimated</span>`;
     case 'expected_delivery':
-      return formatExpectedDelivery(item);
+      if (!item.expected_delivery) return `<span class="detail__field-value detail__field-value--muted">Not set</span>`;
+      return `<span class="detail__field-value">${new Date(item.expected_delivery + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>`;
+    case 'start_date':
+    case 'completed_date':
+      if (!item[fieldName]) return `<span class="detail__field-value detail__field-value--muted">Not set</span>`;
+      return `<span class="detail__field-value">${new Date(item[fieldName] + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>`;
     case 'owner':
-      return `<span class="detail__value">${escapeHtml(item.owner || 'Unassigned')}</span>`;
+      return `<span class="detail__field-value">${escapeHtml(item.owner || 'Unassigned')}</span>`;
+    case 'impact_score':
+    case 'ease_score':
+    case 'priority_score':
+      return `<span class="detail__field-value">${item[fieldName] || 0}/10</span>`;
+    case 'dependencies':
+      return valOrMuted(item.dependencies, 'None');
+    case 'description':
+      return valOrMuted(item.description, 'No description yet');
+    case 'business_impact':
+      return valOrMuted(item.business_impact, 'Not defined yet');
+    case 'outcome':
+      return isTBD(item.outcome)
+        ? `<span class="detail__field-value detail__field-value--muted">\u{1F4AD} TBD - let's define this together</span>`
+        : `<span class="detail__field-value">${escapeHtml(item.outcome)}</span>`;
+    case 'success_metric':
+      return isTBD(item.success_metric)
+        ? `<span class="detail__field-value detail__field-value--muted">\u{1F4AD} Not set yet</span>`
+        : `<span class="detail__field-value">${escapeHtml(item.success_metric)}</span>`;
     default:
       return valOrMuted(item[fieldName]);
   }
@@ -621,83 +688,333 @@ function renderDetailView(item) {
       <div class="editable__display">${displayHtml}</div>
     </div>`;
 
-  const scoreBar = (label, val) => `
-    <div class="detail__section">
-      <div class="detail__label">${label}</div>
-      <div class="score-bar">
-        <div class="score-bar__track">
-          <div class="score-bar__fill" style="width:${((val || 0) / 10) * 100}%"></div>
-        </div>
-        <span class="score-bar__label">${val || 0}</span>
+  // Header badges
+  const badgesEl = detailModal.querySelector('.modal__header-badges') || document.createElement('div');
+  badgesEl.className = 'modal__header-badges';
+  badgesEl.innerHTML = `
+    ${editable('category', getFieldDisplayHtml('category', item))}
+    ${editable('status', getFieldDisplayHtml('status', item))}
+  `;
+  const headerEl = detailModal.querySelector('.modal__header');
+  if (!headerEl.querySelector('.modal__header-badges')) {
+    headerEl.appendChild(badgesEl);
+  }
+
+  // Hero: description with micro-label
+  const desc = item.description || '';
+  const heroHtml = `<div class="detail__hero">
+    <div class="detail__hero-label">Description</div>
+    ${editable('description', desc
+      ? `<span class="detail__field-value">${escapeHtml(desc)}</span>`
+      : '<span class="detail__hero-muted">Add a description...</span>')}
+  </div>`;
+
+  // Smart context chips
+  const chips = [];
+
+  // Time in current status
+  const history = item.edit_history || [];
+  const lastStatusChange = [...history].reverse().find(h => h.field === 'status');
+  const statusSince = lastStatusChange ? lastStatusChange.timestamp : (item.added_date ? item.added_date + 'T12:00:00Z' : null);
+  if (statusSince) {
+    const days = Math.floor((new Date() - new Date(statusSince)) / 86400000);
+    const statusLabel = STATUS_LABELS[item.status] || item.status;
+    const durStr = days === 0 ? 'today' : days === 1 ? '1 day' : `${days} days`;
+    chips.push(`<span class="detail__chip"><span class="detail__chip-icon">\u23F1\uFE0F</span>${escapeHtml(statusLabel)} for ${durStr}</span>`);
+  }
+
+  // Owner
+  chips.push(`<span class="detail__chip"><span class="detail__chip-icon">\u{1F464}</span>${escapeHtml(item.owner || 'Unassigned')}</span>`);
+
+  // Delivery context
+  if (item.expected_delivery && item.status !== 'DONE') {
+    const delivery = new Date(item.expected_delivery + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = Math.floor((delivery - today) / 86400000);
+    let deliveryChip;
+    if (diff < 0) deliveryChip = `<span class="detail__chip detail__chip--overdue"><span class="detail__chip-icon">\u{1F6A8}</span>${Math.abs(diff)} day${Math.abs(diff) !== 1 ? 's' : ''} overdue</span>`;
+    else if (diff === 0) deliveryChip = `<span class="detail__chip detail__chip--warn"><span class="detail__chip-icon">\u{1F680}</span>Due today</span>`;
+    else if (diff <= 7) deliveryChip = `<span class="detail__chip detail__chip--warn"><span class="detail__chip-icon">\u{1F680}</span>Due in ${diff} day${diff !== 1 ? 's' : ''}</span>`;
+    else deliveryChip = `<span class="detail__chip"><span class="detail__chip-icon">\u{1F680}</span>Due ${new Date(item.expected_delivery + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`;
+    chips.push(deliveryChip);
+  } else if (item.status === 'DONE' && item.completed_date) {
+    chips.push(`<span class="detail__chip detail__chip--done"><span class="detail__chip-icon">\u2705</span>Completed ${relativeTime(item.completed_date + 'T12:00:00Z')}</span>`);
+  } else if (!item.expected_delivery && item.status !== 'DONE') {
+    chips.push(`<span class="detail__chip detail__chip--muted"><span class="detail__chip-icon">\u{1F4C5}</span>No deadline</span>`);
+  }
+
+  // Last activity
+  const lastEdit = history.length > 0 ? history[history.length - 1] : null;
+  if (lastEdit) {
+    chips.push(`<span class="detail__chip detail__chip--muted"><span class="detail__chip-icon">\u270F\uFE0F</span>Edited ${relativeTime(lastEdit.timestamp)}</span>`);
+  }
+
+  const metadataHtml = `<div class="detail__chips">${chips.join('')}</div>`;
+
+  // Alerts
+  let alertsHtml = '';
+  if (isTBD(item.success_metric)) {
+    alertsHtml += `<div class="detail__alert detail__alert--warning">
+      \u{1F4AD} Success metrics undefined
+      <button class="detail__alert-action" data-action="edit-metric">+ Add</button>
+    </div>`;
+  }
+  if (item.expected_delivery && item.status !== 'DONE') {
+    const delivery = new Date(item.expected_delivery + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - delivery) / 86400000);
+    if (diffDays > 0) {
+      alertsHtml += `<div class="detail__alert detail__alert--overdue">\u26A0\uFE0F ${diffDays} day${diffDays !== 1 ? 's' : ''} overdue</div>`;
+    }
+  }
+
+  // Collapsible sections
+  const collapsible = (id, title, contentHtml) => {
+    const isOpen = isCollapsibleOpen(item.id, id);
+    return `<div class="detail__collapsible" data-section="${id}">
+      <button class="detail__collapsible-header" aria-expanded="${isOpen}" aria-controls="section-${id}">
+        <span class="detail__collapsible-arrow${isOpen ? ' detail__collapsible-arrow--open' : ''}">\u25B6</span>
+        ${title}
+      </button>
+      <div class="detail__collapsible-body${isOpen ? ' detail__collapsible-body--open' : ''}" id="section-${id}">
+        ${contentHtml}
       </div>
     </div>`;
+  };
 
-  detailBody.innerHTML = `
-    <div class="detail__meta">
-      <span class="detail__meta-badge" style="background:${catStyle.bg};color:${catStyle.text}">${escapeHtml(item.category)}</span>
-      ${editable('status', getFieldDisplayHtml('status', item))}
-      ${editable('build_time', getFieldDisplayHtml('build_time', item))}
-    </div>
-
-    <div class="detail__section">
-      <div class="detail__label">Description</div>
-      ${editable('description', getFieldDisplayHtml('description', item))}
-    </div>
-
-    <div class="detail__section">
-      <div class="detail__label">Business Impact</div>
+  // Section 1: Business impact & details
+  const section1 = `
+    <div class="detail__field">
+      <div class="detail__field-label">Why it matters</div>
       ${editable('business_impact', getFieldDisplayHtml('business_impact', item))}
     </div>
-
-    <div class="detail__row">
-      <div class="detail__section">
-        <div class="detail__label">Outcome</div>
-        ${editable('outcome', getFieldDisplayHtml('outcome', item))}
-      </div>
-      <div class="detail__section">
-        <div class="detail__label">Success Metric</div>
-        ${editable('success_metric', getFieldDisplayHtml('success_metric', item))}
-      </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Success looks like...</div>
+      ${editable('outcome', getFieldDisplayHtml('outcome', item))}
     </div>
-
-    ${scoreBar('Impact', item.impact_score)}
-    ${scoreBar('Ease', item.ease_score)}
-    ${scoreBar('Priority', item.priority_score)}
-
-    <div class="detail__row">
-      <div class="detail__section">
-        <div class="detail__label">Start Date</div>
-        ${editable('start_date', getFieldDisplayHtml('start_date', item))}
-      </div>
-      <div class="detail__section">
-        <div class="detail__label">Completed Date</div>
-        ${editable('completed_date', getFieldDisplayHtml('completed_date', item))}
-      </div>
-    </div>
-
-    <div class="detail__section">
-      <div class="detail__label">Expected Delivery</div>
-      ${editable('expected_delivery', getFieldDisplayHtml('expected_delivery', item))}
-    </div>
-
-    <div class="detail__section">
-      <div class="detail__label">Dependencies</div>
-      <span class="detail__value">${escapeHtml(item.dependencies || 'None')}</span>
-    </div>
-
-    <div class="detail__row">
-      <div class="detail__section">
-        <div class="detail__label">Owner</div>
-        ${editable('owner', getFieldDisplayHtml('owner', item))}
-      </div>
-      <div class="detail__section">
-        <div class="detail__label">Added</div>
-        <span class="detail__value">${escapeHtml(item.added_date || 'Unknown')}</span>
-      </div>
+    <div class="detail__field">
+      <div class="detail__field-label">How we'll measure it</div>
+      ${editable('success_metric', getFieldDisplayHtml('success_metric', item))}
     </div>
   `;
 
+  // Section 2: Timeline & history
+  const section2 = `
+    <div class="detail__field">
+      <div class="detail__field-label">Started</div>
+      ${editable('start_date', getFieldDisplayHtml('start_date', item))}
+    </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Expected delivery</div>
+      ${editable('expected_delivery', getFieldDisplayHtml('expected_delivery', item))}
+    </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Completed</div>
+      ${editable('completed_date', getFieldDisplayHtml('completed_date', item))}
+    </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Added</div>
+      <span class="detail__field-value">${item.added_date ? new Date(item.added_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown'}</span>
+    </div>
+  `;
+
+  // Section 3: Technical details
+  const section3 = `
+    <div class="detail__field">
+      <div class="detail__field-label">Dependencies</div>
+      ${editable('dependencies', getFieldDisplayHtml('dependencies', item))}
+    </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Build time estimate</div>
+      ${editable('build_time', getFieldDisplayHtml('build_time', item))}
+    </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Scores</div>
+      <div class="detail__field-inline">
+        ${editable('impact_score', `<span class="detail__field-inline-item"><span>Impact:</span> ${item.impact_score || 0}/10</span>`)}
+        ${editable('ease_score', `<span class="detail__field-inline-item"><span>Ease:</span> ${item.ease_score || 0}/10</span>`)}
+        ${editable('priority_score', `<span class="detail__field-inline-item"><span>Priority:</span> ${item.priority_score || 0}/10</span>`)}
+      </div>
+    </div>
+    <div class="detail__field">
+      <div class="detail__field-label">Owner</div>
+      ${editable('owner', getFieldDisplayHtml('owner', item))}
+    </div>
+  `;
+
+  // Activity log
+  const activityHtml = renderActivityLog(item);
+
+  detailBody.innerHTML = `
+    ${heroHtml}
+    ${metadataHtml}
+    ${alertsHtml}
+    ${collapsible('impact', '\u{1F4CB} Business impact & details', section1)}
+    ${collapsible('timeline', '\u{1F4C5} Timeline & history', section2)}
+    ${collapsible('technical', '\u{2699}\uFE0F Technical details', section3)}
+    ${activityHtml}
+  `;
+
   attachEditableHandlers();
+  attachCollapsibleHandlers(item.id);
+  attachAlertActions(item);
+  // "View all" in activity log
+  const showAllBtn = detailBody.querySelector('#activityShowAll');
+  if (showAllBtn) {
+    showAllBtn.addEventListener('click', () => {
+      const logEl = detailBody.querySelector('.detail__activity-log');
+      if (!logEl) return;
+      const history = item.edit_history || [];
+      const entries = [];
+      history.forEach(h => {
+        if (h.field === 'status') {
+          entries.push({ type: 'status_change', user: h.edited_by || 'Zev', timestamp: h.timestamp, from_status: h.old_value, to_status: h.new_value });
+        } else {
+          entries.push({ type: 'field_change', user: h.edited_by || 'Zev', timestamp: h.timestamp, field: h.field, old_value: h.old_value, new_value: h.new_value });
+        }
+      });
+      if (item.added_date) entries.push({ type: 'created', user: item.owner || 'Zev', timestamp: item.added_date + 'T12:00:00Z' });
+      entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      logEl.innerHTML = entries.map(e => {
+        const time = relativeTime(e.timestamp);
+        let actionText = '', detailText = '';
+        if (e.type === 'created') { actionText = 'created this item'; }
+        else if (e.type === 'status_change') { actionText = `moved to ${STATUS_LABELS[e.to_status] || e.to_status}`; detailText = `From: ${STATUS_LABELS[e.from_status] || e.from_status}`; }
+        else { const fl = (e.field || '').replace(/_/g, ' '); actionText = `changed ${fl}`; const os = e.old_value != null ? String(e.old_value) : '—'; const ns = e.new_value != null ? String(e.new_value) : '—'; detailText = `${os.length > 40 ? os.slice(0,40)+'...' : os} → ${ns.length > 40 ? ns.slice(0,40)+'...' : ns}`; }
+        return `<div class="detail__activity-entry"><span class="detail__activity-user">${escapeHtml(e.user)}</span> ${escapeHtml(actionText)} <span class="detail__activity-time">• ${escapeHtml(time)}</span>${detailText ? `<div class="detail__activity-detail">${escapeHtml(detailText)}</div>` : ''}</div>`;
+      }).join('');
+    });
+  }
+}
+
+function renderActivityLog(item) {
+  const history = item.edit_history || [];
+
+  // Build entries from edit_history + creation
+  const entries = [];
+
+  // Add creation entry
+  if (item.added_date) {
+    entries.push({
+      type: 'created',
+      user: item.owner || 'Zev',
+      timestamp: item.added_date + 'T09:00:00Z',
+    });
+  }
+
+  // Add edit_history entries
+  history.forEach(h => {
+    if (h.field === 'status') {
+      entries.push({
+        type: 'status_change',
+        user: h.edited_by || 'Unknown',
+        timestamp: h.timestamp,
+        from_status: h.old_value,
+        to_status: h.new_value,
+      });
+    } else {
+      entries.push({
+        type: 'field_update',
+        user: h.edited_by || 'Unknown',
+        timestamp: h.timestamp,
+        field: h.field,
+        old_value: h.old_value,
+        new_value: h.new_value,
+      });
+    }
+  });
+
+  // Sort reverse chronological
+  entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  const totalCount = entries.length;
+  const showLimit = 10;
+  const visible = entries.slice(0, showLimit);
+
+  let entriesHtml = '';
+  if (visible.length === 0) {
+    entriesHtml = '<div class="detail__activity-empty">No activity yet</div>';
+  } else {
+    entriesHtml = visible.map(e => {
+      const time = relativeTime(e.timestamp);
+      let actionText = '';
+      let detailText = '';
+
+      if (e.type === 'created') {
+        actionText = 'created this item';
+      } else if (e.type === 'status_change') {
+        const label = STATUS_LABELS[e.to_status] || e.to_status;
+        actionText = `moved to ${label}`;
+        detailText = `From: ${STATUS_LABELS[e.from_status] || e.from_status}`;
+      } else {
+        const fieldLabel = (e.field || '').replace(/_/g, ' ');
+        actionText = `changed ${fieldLabel}`;
+        const oldStr = e.old_value != null ? String(e.old_value) : '—';
+        const newStr = e.new_value != null ? String(e.new_value) : '—';
+        const oldTrunc = oldStr.length > 40 ? oldStr.slice(0, 40) + '...' : oldStr;
+        const newTrunc = newStr.length > 40 ? newStr.slice(0, 40) + '...' : newStr;
+        detailText = `${oldTrunc} \u2192 ${newTrunc}`;
+      }
+
+      return `<div class="detail__activity-entry">
+        <span class="detail__activity-user">${escapeHtml(e.user)}</span> ${escapeHtml(actionText)}
+        <span class="detail__activity-time">\u2022 ${escapeHtml(time)}</span>
+        ${detailText ? `<div class="detail__activity-detail">${escapeHtml(detailText)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  const moreHtml = totalCount > showLimit
+    ? `<button class="detail__activity-more" id="activityShowAll">View all (${totalCount})</button>`
+    : '';
+
+  return `<div class="detail__activity">
+    <div class="detail__activity-header">\u{1F4DD} Activity</div>
+    <div class="detail__activity-log">
+      ${entriesHtml}
+      ${moreHtml}
+    </div>
+    <div class="detail__activity-note-placeholder">\u{1F4AC} Add note (coming soon)</div>
+  </div>`;
+}
+
+function attachCollapsibleHandlers(itemId) {
+  detailBody.querySelectorAll('.detail__collapsible').forEach(el => {
+    const section = el.dataset.section;
+    const header = el.querySelector('.detail__collapsible-header');
+    const body = el.querySelector('.detail__collapsible-body');
+    const arrow = el.querySelector('.detail__collapsible-arrow');
+
+    header.addEventListener('click', () => {
+      const isOpen = body.classList.contains('detail__collapsible-body--open');
+      body.classList.toggle('detail__collapsible-body--open', !isOpen);
+      arrow.classList.toggle('detail__collapsible-arrow--open', !isOpen);
+      header.setAttribute('aria-expanded', !isOpen);
+      setCollapsibleState(itemId, section, !isOpen);
+    });
+  });
+}
+
+function attachAlertActions(item) {
+  const metricBtn = detailBody.querySelector('[data-action="edit-metric"]');
+  if (metricBtn) {
+    metricBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Open the impact section and focus success_metric
+      const impactSection = detailBody.querySelector('[data-section="impact"]');
+      if (impactSection) {
+        const body = impactSection.querySelector('.detail__collapsible-body');
+        const arrow = impactSection.querySelector('.detail__collapsible-arrow');
+        body.classList.add('detail__collapsible-body--open');
+        arrow.classList.add('detail__collapsible-arrow--open');
+        setCollapsibleState(item.id, 'impact', true);
+        setTimeout(() => {
+          const metricField = impactSection.querySelector('[data-field="success_metric"]');
+          if (metricField) metricField.click();
+        }, 100);
+      }
+    });
+  }
 }
 
 function renderDetailFooter() {
@@ -719,6 +1036,8 @@ function closeDetail() {
   activeEditField = null;
   const overlay = detailModal.querySelector('.confirm-overlay');
   if (overlay) overlay.remove();
+  const badges = detailModal.querySelector('.modal__header-badges');
+  if (badges) badges.remove();
   if (lastFocusTrigger && lastFocusTrigger.isConnected) {
     lastFocusTrigger.focus();
     lastFocusTrigger = null;
@@ -732,7 +1051,9 @@ detailModal.addEventListener('click', (e) => {
 
 // ───── Inline Editing ─────
 function attachEditableHandlers() {
-  detailBody.querySelectorAll('.editable').forEach(el => {
+  // Attach to all editable elements in both body and header badges
+  const modal = detailModal.querySelector('.modal');
+  modal.querySelectorAll('.editable').forEach(el => {
     const fieldName = el.dataset.field;
     el.addEventListener('click', () => activateInlineEdit(el, fieldName));
     el.addEventListener('keydown', (e) => {
@@ -749,7 +1070,8 @@ function activateInlineEdit(wrapperEl, fieldName) {
 
   // Blur any active edit first
   if (activeEditField) {
-    const activeInput = detailBody.querySelector('.editable--active input, .editable--active textarea, .editable--active select');
+    const modal = detailModal.querySelector('.modal');
+    const activeInput = modal.querySelector('.editable--active input, .editable--active textarea, .editable--active select');
     if (activeInput) activeInput.blur();
   }
 
@@ -763,10 +1085,14 @@ function activateInlineEdit(wrapperEl, fieldName) {
   let inputHtml;
   if (config.type === 'select' && config.options === 'status') {
     inputHtml = `<select class="editable__select" data-field="${fieldName}">${statusOptions(currentValue)}</select>`;
+  } else if (config.type === 'select' && config.options === 'category') {
+    inputHtml = `<select class="editable__select" data-field="${fieldName}">${categoryOptions(currentValue)}</select>`;
   } else if (config.type === 'textarea') {
     inputHtml = `<textarea class="editable__textarea" data-field="${fieldName}" placeholder="${config.placeholder || ''}" rows="3">${escapeHtml(currentValue)}</textarea>`;
   } else if (config.type === 'date') {
     inputHtml = `<input class="editable__input" type="date" data-field="${fieldName}" value="${escapeHtml(currentValue || '')}">`;
+  } else if (config.type === 'number') {
+    inputHtml = `<input class="editable__input" type="number" data-field="${fieldName}" value="${currentValue || 0}" min="${config.min || 0}" max="${config.max || 10}" step="${config.step || 0.1}" placeholder="${config.placeholder || ''}">`;
   } else {
     inputHtml = `<input class="editable__input" type="text" data-field="${fieldName}" value="${escapeHtml(currentValue)}" placeholder="${config.placeholder || ''}">`;
   }
@@ -774,7 +1100,7 @@ function activateInlineEdit(wrapperEl, fieldName) {
   wrapperEl.innerHTML = inputHtml;
   const input = wrapperEl.querySelector('input, textarea, select');
   input.focus();
-  if (input.type === 'text') input.select();
+  if (input.type === 'text' || input.type === 'number') input.select();
 
   input.addEventListener('blur', () => {
     const newValue = input.value.trim();
@@ -807,8 +1133,8 @@ function revertInlineEdit(wrapperEl, fieldName) {
 
 function handleInlineSave(wrapperEl, fieldName, newValue, oldValue) {
   activeEditField = null;
-  const oldNorm = oldValue || '';
-  const newNorm = newValue || '';
+  const oldNorm = String(oldValue || '');
+  const newNorm = String(newValue || '');
 
   if (oldNorm === newNorm) {
     revertInlineEdit(wrapperEl, fieldName);
@@ -827,7 +1153,10 @@ function handleInlineSave(wrapperEl, fieldName, newValue, oldValue) {
 }
 
 async function executeInlineSave(wrapperEl, fieldName, newValue, oldValue) {
-  currentDetailItem[fieldName] = newValue || null;
+  // Convert number fields
+  const numFields = ['impact_score', 'ease_score', 'priority_score'];
+  const saveValue = numFields.includes(fieldName) ? parseFloat(newValue) || 0 : (newValue || null);
+  currentDetailItem[fieldName] = saveValue;
 
   try {
     const payload = { ...currentDetailItem, _edited_by: 'Zev' };
@@ -837,16 +1166,12 @@ async function executeInlineSave(wrapperEl, fieldName, newValue, oldValue) {
     syncItemInList(updated);
     currentDetailItem = updated;
 
-    wrapperEl.classList.remove('editable--saving');
-    wrapperEl.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, updated)}</div>`;
-
-    if (fieldName === 'status') {
-      rerenderDateFields(updated);
-      if (newValue === 'DONE' && oldValue !== 'DONE') {
-        celebrateDone(updated, detailModal.querySelector('.modal'));
-      }
+    if (fieldName === 'status' && newValue === 'DONE' && oldValue !== 'DONE') {
+      celebrateDone(updated, detailModal.querySelector('.modal'));
     }
 
+    // Re-render entire detail view to refresh metadata bar, alerts, activity log
+    renderDetailView(updated);
     applyFilters();
     showToast(`Updated ${fieldName.replace(/_/g, ' ')}`);
   } catch (err) {
@@ -855,15 +1180,6 @@ async function executeInlineSave(wrapperEl, fieldName, newValue, oldValue) {
     wrapperEl.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, currentDetailItem)}</div>`;
     showToast(`Save failed: ${err.message}`, 'error');
   }
-}
-
-function rerenderDateFields(item) {
-  ['start_date', 'completed_date', 'expected_delivery'].forEach(fieldName => {
-    const el = detailBody.querySelector(`.editable[data-field="${fieldName}"]`);
-    if (el && !el.classList.contains('editable--active')) {
-      el.innerHTML = `<div class="editable__display">${getFieldDisplayHtml(fieldName, item)}</div>`;
-    }
-  });
 }
 
 // ───── Delete ─────
@@ -986,7 +1302,7 @@ document.addEventListener('keydown', (e) => {
   // Escape: cancel inline edit → close detail → close add modal
   if (e.key === 'Escape') {
     if (activeEditField) {
-      const activeWrapper = detailBody.querySelector(`.editable--active`);
+      const activeWrapper = detailModal.querySelector(`.modal .editable--active`);
       if (activeWrapper) revertInlineEdit(activeWrapper, activeEditField);
       else activeEditField = null;
     } else if (detailModal.classList.contains('active')) {
