@@ -1,20 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS Ops Automation Roadmap</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS Ops Automation Roadmap</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>CS Ops Automation Roadmap</h1>
-        </header>
-        <main id="app">
-            <p>Loading...</p>
-        </main>
+
+  <!-- Header -->
+  <header class="header">
+    <h1 class="header__title">CS Ops Automation Roadmap</h1>
+    <div class="header__center">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="icon" id="themeIcon"></span>
+      </button>
     </div>
-    <script src="app.js"></script>
+    <span class="header__updated" id="lastUpdated"></span>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="controls__search">
+      <span class="controls__search-icon">&#128269;</span>
+      <input type="text" id="searchInput" placeholder="Search initiatives...">
+    </div>
+    <select id="categoryFilter">
+      <option value="">All Categories</option>
+    </select>
+    <select id="sortSelect">
+      <option value="priority">Sort: Priority</option>
+      <option value="id">Sort: ID</option>
+      <option value="name">Sort: Name</option>
+      <option value="impact">Sort: Impact</option>
+      <option value="ease">Sort: Ease</option>
+    </select>
+    <button class="btn btn--primary" id="addItemBtn">+ Add Item</button>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="kanban" id="kanban">
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <span>Loading roadmap...</span>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__header-title" id="detailTitle"></h2>
+        <button class="modal__close" id="detailClose">&times;</button>
+      </div>
+      <div class="modal__body" id="detailBody"></div>
+      <div class="modal__footer">
+        <button class="btn btn--danger btn--disabled">Delete</button>
+        <button class="btn btn--outline btn--disabled">Edit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick-Add Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__header-title">Add New Item</h2>
+        <button class="modal__close" id="addClose">&times;</button>
+      </div>
+      <div class="modal__body">
+        <form id="addForm">
+          <div class="form__group">
+            <label class="form__label">Name <span class="required">*</span></label>
+            <input class="form__input" type="text" name="name" required placeholder="Initiative name">
+          </div>
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label">Category</label>
+              <select class="form__select" name="category" id="addCategory">
+                <option value="Uncategorized">Uncategorized</option>
+              </select>
+            </div>
+            <div class="form__group">
+              <label class="form__label">Status</label>
+              <select class="form__select" name="status">
+                <option value="BACKLOG">Backlog</option>
+                <option value="PLANNED">Planned</option>
+                <option value="NEXT">Next</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="DONE">Done</option>
+              </select>
+            </div>
+          </div>
+          <div class="form__group">
+            <label class="form__label">Description</label>
+            <textarea class="form__textarea" name="description" placeholder="What does it do?"></textarea>
+          </div>
+          <div class="form__group">
+            <label class="form__label">Business Impact</label>
+            <textarea class="form__textarea" name="business_impact" placeholder="Why does it matter?"></textarea>
+          </div>
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label">Impact (0-10)</label>
+              <input class="form__input" type="number" name="impact_score" min="0" max="10" step="0.1" placeholder="0">
+            </div>
+            <div class="form__group">
+              <label class="form__label">Ease (0-10)</label>
+              <input class="form__input" type="number" name="ease_score" min="0" max="10" step="0.1" placeholder="0">
+            </div>
+            <div class="form__group">
+              <label class="form__label">Priority (0-10)</label>
+              <input class="form__input" type="number" name="priority_score" min="0" max="10" step="0.1" placeholder="0">
+            </div>
+          </div>
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label">Build Time</label>
+              <input class="form__input" type="text" name="build_time" placeholder="e.g. 2-3 hrs">
+            </div>
+            <div class="form__group">
+              <label class="form__label">Phase</label>
+              <input class="form__input" type="text" name="phase" placeholder="e.g. Week 5">
+            </div>
+          </div>
+          <div class="form__group">
+            <label class="form__label">Dependencies</label>
+            <input class="form__input" type="text" name="dependencies" placeholder="e.g. Health Scoring (#18)">
+          </div>
+        </form>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--outline" id="addCancel" type="button">Cancel</button>
+        <button class="btn btn--primary" id="addSubmit" type="button">Create Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
 </body>
 </html>
