@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T12:44:41Z",
+  "last_updated": "2026-02-10T12:44:44Z",
   "items": [
     {
       "id": 1,
@@ -383,7 +383,7 @@
       "priority_score": 7.8,
       "build_time": "4-6 hrs",
       "phase": "Week 5-6",
-      "status": "IN_PROGRESS",
+      "status": "NEXT",
       "start_date": "2026-02-10",
       "completed_date": null,
       "dependencies": "Maturity Model V1 (#12); Fathom",
