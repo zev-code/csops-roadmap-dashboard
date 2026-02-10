@@ -43,6 +43,71 @@ const EDITABLE_FIELDS = {
   owner:             { type: 'text', placeholder: 'e.g. Zev' },
 };
 
+// ───── Confetti Celebration ─────
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let doneCountToday = 0;
+const todayKey = new Date().toISOString().slice(0, 10);
+if (localStorage.getItem('confetti_date') !== todayKey) {
+  localStorage.setItem('confetti_date', todayKey);
+  localStorage.setItem('confetti_done_count', '0');
+}
+doneCountToday = parseInt(localStorage.getItem('confetti_done_count') || '0', 10);
+
+const CONFETTI_COLORS = ['#13D77A', '#13D77A', '#13D77A', '#FFA987', '#80D7DB', '#F7EE6C'];
+
+function celebrateDone(item, originEl) {
+  // ARIA announce for screen readers
+  const announce = document.createElement('div');
+  announce.setAttribute('role', 'status');
+  announce.setAttribute('aria-live', 'polite');
+  announce.className = 'sr-only';
+  announce.textContent = `Item completed: ${item.name}`;
+  document.body.appendChild(announce);
+  setTimeout(() => announce.remove(), 2000);
+
+  if (prefersReducedMotion) return;
+  if (typeof confetti !== 'function') return;
+
+  let x = 0.5, y = 0.5;
+  if (originEl) {
+    const rect = originEl.getBoundingClientRect();
+    x = (rect.left + rect.width / 2) / window.innerWidth;
+    y = (rect.top + rect.height / 2) / window.innerHeight;
+  }
+
+  const isHighPriority = item.priority_score > 8.0;
+  const isFirstToday = doneCountToday === 0;
+  const particleCount = isHighPriority ? 150 : 80;
+
+  confetti({
+    particleCount,
+    spread: isHighPriority ? 80 : 60,
+    origin: { x, y },
+    colors: CONFETTI_COLORS,
+    gravity: 1.2,
+    decay: 0.92,
+    ticks: 90,
+  });
+
+  if (isFirstToday) {
+    setTimeout(() => {
+      confetti({
+        particleCount: 40,
+        spread: 120,
+        origin: { x, y: y - 0.05 },
+        colors: CONFETTI_COLORS,
+        startVelocity: 20,
+        gravity: 0.8,
+        shapes: ['star'],
+        scalar: 1.2,
+      });
+    }, 300);
+  }
+
+  doneCountToday++;
+  localStorage.setItem('confetti_done_count', String(doneCountToday));
+}
+
 // ───── DOM refs ─────
 const $ = (id) => document.getElementById(id);
 const kanban = $('kanban');
@@ -329,10 +394,7 @@ function createCard(item) {
   }
 
   card.innerHTML = `
-    <div class="card__top">
-      <span class="card__id">#${item.id}</span>
-      ${priorityHtml}
-    </div>
+    ${priorityHtml ? `<div class="card__top">${priorityHtml}</div>` : ''}
     <div class="card__title">${escapeHtml(item.name)}</div>
     ${overdueHtml}
     <div class="card__bottom">
@@ -493,6 +555,12 @@ async function handleDrop(item, newStatus) {
   applyFilters();
   showToast(`Moved to ${STATUS_LABELS[newStatus]}`);
 
+  // Celebrate if moving to DONE (not already DONE)
+  if (newStatus === 'DONE' && oldStatus !== 'DONE') {
+    const card = kanban.querySelector(`.card[data-item-id="${item.id}"]`);
+    celebrateDone(item, card);
+  }
+
   try {
     const updated = await apiUpdateStatus(item.id, newStatus);
     syncItemInList(updated);
@@ -567,7 +635,6 @@ function renderDetailView(item) {
   detailBody.innerHTML = `
     <div class="detail__meta">
       <span class="detail__meta-badge" style="background:${catStyle.bg};color:${catStyle.text}">${escapeHtml(item.category)}</span>
-      <span class="detail__meta-badge">#${item.id}</span>
       ${editable('status', getFieldDisplayHtml('status', item))}
       ${editable('build_time', getFieldDisplayHtml('build_time', item))}
     </div>
@@ -775,6 +842,9 @@ async function executeInlineSave(wrapperEl, fieldName, newValue, oldValue) {
 
     if (fieldName === 'status') {
       rerenderDateFields(updated);
+      if (newValue === 'DONE' && oldValue !== 'DONE') {
+        celebrateDone(updated, detailModal.querySelector('.modal'));
+      }
     }
 
     applyFilters();
