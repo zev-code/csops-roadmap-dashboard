@@ -1,0 +1,15 @@
+[Unit]
+Description=CS Ops Roadmap Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/csops-roadmap-dashboard
+Environment=PATH=/opt/csops-roadmap-dashboard/venv/bin
+ExecStart=/opt/csops-roadmap-dashboard/venv/bin/python api/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
