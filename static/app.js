@@ -305,7 +305,10 @@ function formatExpectedDelivery(item) {
 
 function syncItemInList(updated) {
   const idx = allItems.findIndex(i => i.id === updated.id);
-  if (idx !== -1) allItems[idx] = updated;
+  if (idx !== -1) {
+    if (allItems[idx]._movedAt) updated._movedAt = allItems[idx]._movedAt;
+    allItems[idx] = updated;
+  }
 }
 
 function removeItemFromList(id) {
