@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T13:44:07Z",
+  "last_updated": "2026-02-10T13:44:12Z",
   "items": [
     {
       "id": 1,
@@ -1208,7 +1208,7 @@
       "build_time": "",
       "phase": "",
       "expected_delivery": null,
-      "status": "DONE",
+      "status": "IN_PROGRESS",
       "start_date": "2026-02-10",
       "completed_date": "2026-02-10",
       "dependencies": "",
@@ -1223,6 +1223,13 @@
           "field": "status",
           "old_value": "IN_PROGRESS",
           "new_value": "DONE",
+          "edited_by": "Zev"
+        },
+        {
+          "timestamp": "2026-02-10T13:44:12Z",
+          "field": "status",
+          "old_value": "DONE",
+          "new_value": "IN_PROGRESS",
           "edited_by": "Zev"
         }
       ]
