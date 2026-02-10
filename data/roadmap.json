@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-10T19:53:56Z",
+  "last_updated": "2026-02-10T21:26:01Z",
   "items": [
     {
       "id": 1,
@@ -1651,11 +1651,44 @@
           "edited_by": "Claude Code"
         }
       ]
+    },
+    {
+      "id": 63,
+      "name": "Security Skill - Auto-scan for vulns",
+      "category": "Uncategorized",
+      "description": "",
+      "business_impact": "",
+      "outcome": "TBD - define after initial build",
+      "success_metric": "TBD",
+      "impact_score": 0.0,
+      "ease_score": 0.0,
+      "priority_score": 0.0,
+      "build_time": "",
+      "phase": "",
+      "expected_delivery": null,
+      "status": "DONE",
+      "start_date": null,
+      "completed_date": "2026-02-10",
+      "dependencies": "",
+      "votes": [],
+      "vote_count": 0,
+      "n8n_workflows": [],
+      "owner": "Zev",
+      "added_date": "2026-02-10",
+      "edit_history": [
+        {
+          "timestamp": "2026-02-10T21:26:01Z",
+          "field": "status",
+          "old_value": null,
+          "new_value": "DONE",
+          "edited_by": "Claude Code"
+        }
+      ]
     }
   ],
   "backlog": [],
   "metadata": {
-    "total_items": 62,
+    "total_items": 63,
     "categories": [
       "CS Enablement",
       "CS Intelligence",
