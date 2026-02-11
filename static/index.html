@@ -10,7 +10,24 @@
 
   <!-- Header -->
   <header class="header">
-    <h1 class="header__title">CS Ops Automation Roadmap</h1>
+    <div class="header__left">
+      <div class="user-menu" id="userMenu" style="display:none">
+        <button class="user-avatar" id="userAvatar" aria-label="User menu">
+          <img src="" alt="" id="userAvatarImg" style="display:none">
+          <span class="user-initials" id="userInitials"></span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown__info">
+            <div class="user-dropdown__name" id="dropdownName"></div>
+            <div class="user-dropdown__email" id="dropdownEmail"></div>
+            <div class="user-dropdown__role" id="dropdownRole"></div>
+          </div>
+          <div class="user-dropdown__divider"></div>
+          <button class="user-dropdown__item" id="menuLogout">Log out</button>
+        </div>
+      </div>
+      <h1 class="header__title">CS Ops Automation Roadmap</h1>
+    </div>
     <div class="header__right">
       <span class="header__updated" id="lastUpdated"></span>
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">

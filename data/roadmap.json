@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-11T01:30:35Z",
+  "last_updated": "2026-02-11T02:33:54Z",
   "items": [
     {
       "id": 1,
@@ -1780,11 +1780,65 @@
           "edited_by": "Claude Code"
         }
       ]
+    },
+    {
+      "id": 65,
+      "name": "Complete Auth UX with Google OAuth & User Persistence",
+      "category": "Product Feature",
+      "description": "Landing page for unauthenticated users, Google OAuth integration with @dashq.io domain restriction, user menu dropdown, auth guard, auto-create users on first login with persistence to JSON file. First user is admin, subsequent users are editors.",
+      "business_impact": "Enables team self-service signup via Google, blocks external access, professional auth UX, users survive restarts",
+      "outcome": "Built complete auth UX: Google OAuth with @dashq.io restriction, landing page, user menu dropdown, auth guard, JSON user persistence, error page. 121 tests passing.",
+      "success_metric": "Users with @dashq.io emails can sign in with Google, external emails rejected, landing page shows when logged out, user menu works, users persist across restarts",
+      "impact_score": 10.0,
+      "ease_score": 6.0,
+      "priority_score": 10.0,
+      "build_time": "70 minutes",
+      "phase": "",
+      "expected_delivery": "2026-02-10",
+      "status": "DONE",
+      "start_date": "2026-02-10",
+      "completed_date": "2026-02-10",
+      "dependencies": "",
+      "votes": [],
+      "vote_count": 0,
+      "n8n_workflows": [],
+      "owner": "Claude Code",
+      "added_date": "2026-02-10",
+      "edit_history": [
+        {
+          "timestamp": "2026-02-11T02:21:46Z",
+          "field": "status",
+          "old_value": null,
+          "new_value": "NEXT",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T02:21:51Z",
+          "field": "status",
+          "old_value": "NEXT",
+          "new_value": "IN_PROGRESS",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T02:33:54Z",
+          "field": "status",
+          "old_value": "IN_PROGRESS",
+          "new_value": "DONE",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T02:33:54Z",
+          "field": "outcome",
+          "old_value": "TBD - define after initial build",
+          "new_value": "Built complete auth UX: Google OAuth with @dashq.io restriction, landing page, user menu dropdown, auth guard, JSON user persistence, error page. 121 tests passing.",
+          "edited_by": "Claude Code"
+        }
+      ]
     }
   ],
   "backlog": [],
   "metadata": {
-    "total_items": 64,
+    "total_items": 65,
     "categories": [
       "CS Enablement",
       "CS Intelligence",
@@ -1794,6 +1848,7 @@
       "Infrastructure",
       "Knowledge Mgmt",
       "Measurement",
+      "Product Feature",
       "Product Intelligence",
       "Reliability",
       "Uncategorized"

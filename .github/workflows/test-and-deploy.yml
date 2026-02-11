@@ -51,6 +51,9 @@ jobs:
       - name: "🔐 Auth, Voting & Comments Tests"
         run: pytest tests/test_auth.py -v --tb=short
 
+      - name: "🔑 OAuth & Persistence Tests"
+        run: pytest tests/test_oauth.py -v --tb=short
+
       - name: "🔒 Security Tests"
         run: pytest tests/test_security.py -v --tb=short
 

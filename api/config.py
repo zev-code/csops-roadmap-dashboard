@@ -15,3 +15,11 @@ class Config:
     GIT_AUTO_COMMIT = os.getenv('GIT_AUTO_COMMIT', 'true').lower() == 'true'
     DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     PORT = int(os.getenv('PORT', 5000))
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+    ALLOWED_EMAIL_DOMAINS = [d.strip().lower() for d in os.getenv('ALLOWED_EMAIL_DOMAINS', 'dashq.io').split(',')]
+
+    # User persistence
+    USERS_FILE = os.path.join(DATA_DIR, 'users.json')

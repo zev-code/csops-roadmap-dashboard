@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or 'Error' }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f1923 0%, #162231 50%, #1a2c40 100%);
+      color: #e5e7eb;
+      padding: 2rem;
+    }
+    .error-card {
+      max-width: 460px;
+      text-align: center;
+      background: #1e293b;
+      padding: 2.5rem;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .error-card__icon { font-size: 3rem; margin-bottom: 1rem; }
+    .error-card__title {
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+    .error-card__message {
+      color: #94a3b8;
+      margin-bottom: 1.25rem;
+      line-height: 1.6;
+      font-size: 0.9375rem;
+    }
+    .error-card__detail {
+      background: #0f172a;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      font-family: monospace;
+      font-size: 0.8125rem;
+      color: #cbd5e1;
+      word-break: break-all;
+    }
+    .error-card__link {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.625rem 1.5rem;
+      background: #13D77A;
+      color: #0f1923;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .error-card__link:hover {
+      background: #10c76e;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <div class="error-card">
+    <div class="error-card__icon">&#128274;</div>
+    <h1 class="error-card__title">{{ title }}</h1>
+    <p class="error-card__message">{{ message }}</p>
+    {% if detail %}
+    <div class="error-card__detail">{{ detail }}</div>
+    {% endif %}
+    {% if required %}
+    <div class="error-card__detail">{{ required }}</div>
+    {% endif %}
+    {% if suggestion %}
+    <p class="error-card__message">{{ suggestion }}</p>
+    {% endif %}
+    <a href="/" class="error-card__link">Back to Home</a>
+  </div>
+</body>
+</html>

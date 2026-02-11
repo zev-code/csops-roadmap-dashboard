@@ -94,7 +94,7 @@ def tmp_roadmap(tmp_path):
 
 
 @pytest.fixture()
-def app(tmp_roadmap, monkeypatch):
+def app(tmp_roadmap, tmp_path, monkeypatch):
     """Create a Flask test app backed by a temporary roadmap file."""
     # Disable git auto-commit during tests
     monkeypatch.setenv('GIT_AUTO_COMMIT', 'false')
@@ -105,10 +105,18 @@ def app(tmp_roadmap, monkeypatch):
     import config as cfg
 
     # Patch Config class attributes (ROADMAP_FILE lives on the class)
+    tmp_data_dir = os.path.dirname(tmp_roadmap)
     monkeypatch.setattr(cfg.Config, 'ROADMAP_FILE', tmp_roadmap)
-    monkeypatch.setattr(cfg.Config, 'DATA_DIR', os.path.dirname(tmp_roadmap))
+    monkeypatch.setattr(cfg.Config, 'DATA_DIR', tmp_data_dir)
     monkeypatch.setattr(cfg.Config, 'GIT_AUTO_COMMIT', False)
     monkeypatch.setattr(cfg.Config, 'ROADMAP_API_KEY', 'test-api-key-12345')
+    monkeypatch.setattr(cfg.Config, 'USERS_FILE', os.path.join(tmp_data_dir, 'users.json'))
+    monkeypatch.setattr(cfg.Config, 'ALLOWED_EMAIL_DOMAINS', ['dashq.io'])
+
+    # Point auth user persistence at temp dir and reinitialize
+    import auth as auth_module
+    monkeypatch.setattr(auth_module, '_users_file_override', os.path.join(tmp_data_dir, 'users.json'))
+    auth_module._init_users()
 
     # Reload the app module so it picks up the patched Config
     import app as app_module

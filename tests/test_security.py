@@ -98,6 +98,7 @@ class TestStaticFilesExist:
 
     REQUIRED_FILES = [
         'index.html',
+        'landing.html',
         'app.js',
         'auth.js',
         'style.css',
@@ -220,6 +221,7 @@ class TestDependencyIntegrity:
         'urllib', 'importlib', 'contextlib', 'dataclasses',
         'markupsafe', 'jinja2', 'click', 'itsdangerous',
         'dotenv', 'python-dotenv',
+        'authlib', 'requests',
     }
 
     # Map import names to requirement names (when they differ)
@@ -233,6 +235,8 @@ class TestDependencyIntegrity:
         'jinja2': 'flask',
         'click': 'flask',
         'itsdangerous': 'flask',
+        'authlib': 'authlib',
+        'requests': 'requests',
     }
 
     def _get_requirements(self):
@@ -280,6 +284,12 @@ class TestDependencyIntegrity:
             "\n".join(f"  - {m}" for m in sorted(missing))
         )
 
+    # Requirements that are transitive deps of other requirements
+    # Key = transitive dep, Value = parent requirement's import name
+    TRANSITIVE_DEPS = {
+        'requests': 'authlib',  # authlib needs requests for HTTP
+    }
+
     def test_no_unused_requirements(self):
         """Every package in requirements.txt should be imported somewhere."""
         reqs = self._get_requirements()
@@ -294,6 +304,11 @@ class TestDependencyIntegrity:
 
         unused = []
         for req in reqs:
+            # Skip transitive deps if their parent is imported
+            if req in self.TRANSITIVE_DEPS:
+                parent_import = self.TRANSITIVE_DEPS[req]
+                if parent_import in imports:
+                    continue
             possible = req_to_imports.get(req, {req.replace('-', '_')})
             if not any(p in imports for p in possible):
                 unused.append(req)

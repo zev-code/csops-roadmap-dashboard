@@ -33,38 +33,71 @@ async function doLogout() {
     credentials: 'same-origin',
   });
   currentUser = null;
-  updateAuthUI();
+  window.location.href = '/';
 }
 
 function updateAuthUI() {
+  // Remove old auth-controls if present
   const existing = document.querySelector('.auth-controls');
   if (existing) existing.remove();
 
-  const container = document.createElement('div');
-  container.className = 'auth-controls';
+  // Update the user menu (avatar dropdown in header)
+  const userMenu = document.getElementById('userMenu');
+  const avatarImg = document.getElementById('userAvatarImg');
+  const initialsEl = document.getElementById('userInitials');
+  const nameEl = document.getElementById('dropdownName');
+  const emailEl = document.getElementById('dropdownEmail');
+  const roleEl = document.getElementById('dropdownRole');
 
-  if (currentUser) {
-    container.innerHTML = `
-      <span class="auth-user">${escapeHtml(currentUser.username)}</span>
-      <span class="auth-role">${escapeHtml(currentUser.role)}</span>
-      <button class="btn btn--outline btn--sm" id="logoutBtn">Logout</button>
-    `;
-    container.querySelector('#logoutBtn').addEventListener('click', async () => {
-      await doLogout();
-      showToast('Logged out');
-    });
-  } else {
-    container.innerHTML = `
-      <button class="btn btn--primary btn--sm" id="loginBtn">Login</button>
-    `;
-    container.querySelector('#loginBtn').addEventListener('click', openLoginModal);
+  if (currentUser && userMenu) {
+    userMenu.style.display = 'block';
+
+    // Avatar or initials
+    if (currentUser.picture && avatarImg) {
+      avatarImg.src = currentUser.picture;
+      avatarImg.alt = currentUser.name || currentUser.username;
+      avatarImg.style.display = 'block';
+      if (initialsEl) initialsEl.style.display = 'none';
+    } else if (initialsEl) {
+      const name = currentUser.name || currentUser.username || '';
+      const initials = name.includes(' ')
+        ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+        : name.substring(0, 2).toUpperCase();
+      initialsEl.textContent = initials;
+      initialsEl.style.display = 'flex';
+      if (avatarImg) avatarImg.style.display = 'none';
+    }
+
+    // Dropdown info
+    if (nameEl) nameEl.textContent = currentUser.name || currentUser.username;
+    if (emailEl) emailEl.textContent = currentUser.email;
+    if (roleEl) roleEl.textContent = currentUser.role;
   }
-
-  const headerRight = document.querySelector('.header__right');
-  headerRight.insertBefore(container, headerRight.firstChild);
 }
 
-// ───── Login Modal ─────
+// ───── User menu interactions ─────
+function initUserMenu() {
+  const avatar = document.getElementById('userAvatar');
+  const dropdown = document.getElementById('userDropdown');
+  const logoutBtn = document.getElementById('menuLogout');
+
+  if (avatar && dropdown) {
+    avatar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('show');
+    });
+    document.addEventListener('click', () => {
+      dropdown.classList.remove('show');
+    });
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', doLogout);
+  }
+}
+
+// ───── Login Modal (fallback for password auth) ─────
 function openLoginModal() {
   let overlay = document.getElementById('loginModal');
   if (!overlay) {
@@ -209,4 +242,7 @@ async function deleteComment(itemId, commentId) {
 }
 
 // ───── Init ─────
-document.addEventListener('DOMContentLoaded', checkAuth);
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  initUserMenu();
+});

@@ -1,21 +1,22 @@
 from functools import wraps
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, redirect, url_for, render_template
 from flask_cors import CORS
 from flask_login import login_required, current_user, login_user, logout_user
 from config import Config
-from auth import login_manager, authenticate
+from auth import login_manager, authenticate, init_oauth, oauth, is_email_allowed, get_or_create_user
 import hmac
 import json
 import os
 import subprocess
 from datetime import datetime, timezone
 
-app = Flask(__name__, static_folder='../static')
+app = Flask(__name__, static_folder='../static', template_folder='../templates')
 app.config.from_object(Config)
 CORS(app, supports_credentials=True)
 
 # --- Auth setup ---
 login_manager.init_app(app)
+init_oauth(app)
 
 
 @login_manager.unauthorized_handler
@@ -138,7 +139,14 @@ def apply_status_dates(item, new_status):
 
 @app.route('/')
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    if current_user.is_authenticated:
+        return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(app.static_folder, 'landing.html')
+
+
+@app.route('/landing')
+def landing():
+    return send_from_directory(app.static_folder, 'landing.html')
 
 
 @app.route('/<path:path>')
@@ -179,7 +187,9 @@ def login():
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
+                'name': user.name,
                 'role': user.role,
+                'picture': user.picture,
             },
         })
     return jsonify({'error': 'Invalid credentials'}), 401
@@ -199,8 +209,57 @@ def get_current_user():
         'id': current_user.id,
         'username': current_user.username,
         'email': current_user.email,
+        'name': getattr(current_user, 'name', current_user.username),
         'role': current_user.role,
+        'picture': getattr(current_user, 'picture', ''),
     })
+
+
+# --- Google OAuth ---
+
+@app.route('/auth/google')
+def google_login():
+    """Redirect to Google OAuth consent screen."""
+    if not Config.GOOGLE_CLIENT_ID:
+        return jsonify({'error': 'Google OAuth not configured'}), 500
+    redirect_uri = url_for('google_callback', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/google/callback')
+def google_callback():
+    """Handle Google OAuth callback."""
+    try:
+        token = oauth.google.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            resp = oauth.google.get('https://openidconnect.googleapis.com/v1/userinfo')
+            user_info = resp.json()
+
+        email = user_info.get('email', '')
+        name = user_info.get('name', email.split('@')[0])
+        picture = user_info.get('picture', '')
+
+        if not is_email_allowed(email):
+            return render_template('error.html',
+                title='Access Restricted',
+                message='This dashboard is only available to DashQ team members.',
+                detail=f'Your email: {email}',
+                required='Required: @dashq.io email address',
+                suggestion='Please sign in with your DashQ email address.',
+            ), 403
+
+        user = get_or_create_user(email, name, picture)
+        login_user(user, remember=True)
+        return redirect('/')
+
+    except Exception as e:
+        print(f"OAuth error: {e}")
+        return render_template('error.html',
+            title='Authentication Error',
+            message='Failed to sign in with Google.',
+            detail=str(e),
+        ), 500
 
 
 # --- Roadmap ---
