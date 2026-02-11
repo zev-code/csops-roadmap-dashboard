@@ -646,7 +646,20 @@ def handle_http_error(e):
 def server_error(e):
     import traceback
     traceback.print_exc()
-    return jsonify({'error': 'Internal server error'}), 500
+    # Build a human-readable error with reference code for debugging
+    ref = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
+    endpoint = request.path if request else 'unknown'
+    method = request.method if request else 'unknown'
+    detail = str(getattr(e, 'original_exception', e) or 'Unknown error')
+    # Truncate long tracebacks but keep the useful part
+    if len(detail) > 200:
+        detail = detail[:200] + '...'
+    return jsonify({
+        'error': 'Internal server error',
+        'detail': detail,
+        'ref': ref,
+        'endpoint': f'{method} {endpoint}',
+    }), 500
 
 
 if __name__ == '__main__':

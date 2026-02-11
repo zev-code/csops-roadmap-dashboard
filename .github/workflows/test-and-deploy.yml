@@ -146,7 +146,9 @@ jobs:
             # Pull latest code
             git pull origin main
 
-            # Ensure data files are writable by the Flask service (www-data)
+            # Ensure data files exist and are writable by the Flask service (www-data)
+            # users.json is gitignored (contains credentials) — create if missing
+            [ -f data/users.json ] || echo '{"users": []}' > data/users.json
             sudo chown www-data:www-data data/roadmap.json data/users.json 2>/dev/null || true
             sudo chmod 664 data/roadmap.json data/users.json 2>/dev/null || true
 

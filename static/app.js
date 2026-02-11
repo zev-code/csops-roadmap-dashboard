@@ -181,9 +181,24 @@ themeToggle.addEventListener('click', toggleTheme);
 // ───── API ─────
 const API = '/api';
 
+function handleApiError(res, json) {
+  if (res.status >= 500) {
+    showErrorBanner({
+      error: json.error || 'Internal server error',
+      detail: json.detail || json.error || 'Something went wrong on the server',
+      ref: json.ref || '',
+      endpoint: json.endpoint || '',
+    });
+  }
+  throw new Error(json.error || `Request failed (${res.status})`);
+}
+
 async function fetchRoadmap() {
   const res = await fetch(`${API}/roadmap`);
-  if (!res.ok) throw new Error('Failed to load roadmap');
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    handleApiError(res, json);
+  }
   return res.json();
 }
 
@@ -194,7 +209,7 @@ async function apiCreateItem(data) {
     body: JSON.stringify(data),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Create failed');
+  if (!res.ok) handleApiError(res, json);
   return json;
 }
 
@@ -205,7 +220,7 @@ async function apiUpdateItem(id, data) {
     body: JSON.stringify(data),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Update failed');
+  if (!res.ok) handleApiError(res, json);
   return json;
 }
 
@@ -216,14 +231,14 @@ async function apiUpdateStatus(id, status) {
     body: JSON.stringify({ status }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Status update failed');
+  if (!res.ok) handleApiError(res, json);
   return json;
 }
 
 async function apiDeleteItem(id) {
   const res = await fetch(`${API}/roadmap/items/${id}`, { method: 'DELETE' });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Delete failed');
+  if (!res.ok) handleApiError(res, json);
   return json;
 }
 
@@ -253,6 +268,72 @@ function removeToast(toast) {
   toast.style.opacity = '0';
   toast.style.transform = 'translateX(40px)';
   setTimeout(() => toast.remove(), 300);
+}
+
+// ───── Error Banner (screenshot-friendly) ─────
+function showErrorBanner(errorInfo) {
+  // Remove any existing banner
+  const existing = document.querySelector('.error-banner');
+  if (existing) existing.remove();
+
+  const detail = errorInfo.detail || errorInfo.error || 'Something went wrong';
+  const ref = errorInfo.ref || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
+  const endpoint = errorInfo.endpoint || '';
+  const timestamp = new Date().toLocaleString();
+
+  const banner = document.createElement('div');
+  banner.className = 'error-banner';
+  banner.setAttribute('role', 'alert');
+  banner.innerHTML = `
+    <span class="error-banner__icon">\u26A0\uFE0F</span>
+    <div class="error-banner__body">
+      <div class="error-banner__title">${escapeHtml(detail)}</div>
+      <div class="error-banner__meta">
+        ${endpoint ? `<span>Endpoint: ${escapeHtml(endpoint)}</span>` : ''}
+        <span>Ref: ${escapeHtml(ref)}</span>
+        <span>${escapeHtml(timestamp)}</span>
+      </div>
+    </div>
+    <div class="error-banner__actions">
+      <button class="error-banner__btn" id="errorCopyBtn">Copy error</button>
+      <button class="error-banner__btn error-banner__btn--close" aria-label="Dismiss">&times;</button>
+    </div>
+  `;
+
+  document.body.prepend(banner);
+
+  // Copy button
+  banner.querySelector('#errorCopyBtn').addEventListener('click', () => {
+    const copyText = [
+      `Error: ${detail}`,
+      endpoint ? `Endpoint: ${endpoint}` : '',
+      `Ref: ${ref}`,
+      `Time: ${timestamp}`,
+      `URL: ${window.location.href}`,
+    ].filter(Boolean).join('\n');
+
+    navigator.clipboard.writeText(copyText).then(() => {
+      banner.querySelector('#errorCopyBtn').textContent = 'Copied!';
+      setTimeout(() => {
+        const btn = banner.querySelector('#errorCopyBtn');
+        if (btn) btn.textContent = 'Copy error';
+      }, 2000);
+    });
+  });
+
+  // Close button
+  banner.querySelector('.error-banner__btn--close').addEventListener('click', () => {
+    banner.style.transform = 'translateY(-100%)';
+    setTimeout(() => banner.remove(), 300);
+  });
+
+  // Auto-dismiss after 30s
+  setTimeout(() => {
+    if (banner.isConnected) {
+      banner.style.transform = 'translateY(-100%)';
+      setTimeout(() => banner.remove(), 300);
+    }
+  }, 30000);
 }
 
 // ───── Helpers ─────
