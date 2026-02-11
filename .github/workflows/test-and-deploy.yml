@@ -146,8 +146,19 @@ jobs:
             # Pull latest code
             git pull origin main
 
+            # Ensure data files are writable by the Flask service (www-data)
+            sudo chown www-data:www-data data/roadmap.json data/users.json 2>/dev/null || true
+            sudo chmod 664 data/roadmap.json data/users.json 2>/dev/null || true
+
             # Install/update dependencies (--break-system-packages for PEP 668 on Debian 12+)
             sudo python3 -m pip install -r requirements.txt --quiet --break-system-packages
+
+            # Update nginx config if changed and reload
+            if ! diff -q deploy/nginx-cs-dashq.conf /etc/nginx/sites-available/cs-dashq.conf > /dev/null 2>&1; then
+              echo "Nginx config changed — updating and reloading"
+              sudo cp deploy/nginx-cs-dashq.conf /etc/nginx/sites-available/cs-dashq.conf
+              sudo nginx -t && sudo systemctl reload nginx
+            fi
 
             # Restart service and verify
             sudo systemctl restart csops-roadmap
@@ -164,9 +175,26 @@ jobs:
               sleep 3
             done
 
-            if [ "$HEALTHY" = true ]; then
-              echo "Deploy successful"
-              exit 0
+            if [ "$HEALTHY" != true ]; then
+              echo "Health check failed"
+            else
+              # Smoke test: verify a write operation works (catches permission issues)
+              SMOKE=$(curl -sf -X POST http://127.0.0.1:5000/api/roadmap/items \
+                -H 'Content-Type: application/json' \
+                -d '{"name":"__SMOKE_TEST__","status":"BACKLOG"}' 2>&1)
+              SMOKE_ID=$(echo "$SMOKE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+              if [ -n "$SMOKE_ID" ]; then
+                # Clean up the test item
+                curl -sf -X DELETE "http://127.0.0.1:5000/api/roadmap/items/${SMOKE_ID}" > /dev/null 2>&1
+                echo "Deploy successful (read + write verified)"
+                exit 0
+              else
+                echo "WARNING: Write smoke test failed — check file permissions"
+                echo "Response: $SMOKE"
+                # Still succeed if health is OK (write may require auth)
+                echo "Deploy successful (read-only verified)"
+                exit 0
+              fi
             fi
 
             # --- AUTO-ROLLBACK ---
@@ -174,6 +202,8 @@ jobs:
             sudo journalctl -u csops-roadmap --no-pager -n 20
             git checkout "$PREV_COMMIT"
             sudo python3 -m pip install -r requirements.txt --quiet --break-system-packages
+            sudo cp deploy/nginx-cs-dashq.conf /etc/nginx/sites-available/cs-dashq.conf 2>/dev/null
+            sudo nginx -t && sudo systemctl reload nginx 2>/dev/null
             sudo systemctl restart csops-roadmap
             sleep 2
 

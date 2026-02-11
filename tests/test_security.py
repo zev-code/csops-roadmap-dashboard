@@ -205,6 +205,42 @@ class TestCSPConfig:
 
 
 # ---------------------------------------------------------------------------
+# Cache-control validation
+# ---------------------------------------------------------------------------
+
+class TestCacheConfig:
+    """Prevent: Aggressive caching stops updates from reaching users."""
+
+    def test_nginx_no_immutable_cache(self):
+        """immutable prevents even hard-refresh from fetching new files."""
+        conf_path = os.path.join(PROJECT_ROOT, 'deploy', 'nginx-cs-dashq.conf')
+        if not os.path.isfile(conf_path):
+            pytest.skip("nginx config not present locally")
+        with open(conf_path, 'r') as f:
+            content = f.read()
+        assert 'immutable' not in content, (
+            "Cache-Control must not use 'immutable' — it prevents users from "
+            "getting updated static files even with hard refresh"
+        )
+
+    def test_static_includes_have_cache_busting(self):
+        """Script/CSS includes in index.html must have ?v= cache-busting params."""
+        index_path = os.path.join(STATIC_DIR, 'index.html')
+        with open(index_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        # Check that app.js and auth.js have version params
+        assert re.search(r'app\.js\?v=', content), (
+            "app.js include missing ?v= cache-busting parameter"
+        )
+        assert re.search(r'auth\.js\?v=', content), (
+            "auth.js include missing ?v= cache-busting parameter"
+        )
+        assert re.search(r'style\.css\?v=', content), (
+            "style.css include missing ?v= cache-busting parameter"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Dependency integrity — catch "tests pass but deploy fails"
 # ---------------------------------------------------------------------------
 

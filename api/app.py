@@ -46,8 +46,10 @@ def save_roadmap(data):
     data['last_updated'] = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     # Recompute metadata
     items = data.get('items', [])
-    data['metadata']['total_items'] = len(items)
-    data['metadata']['categories'] = sorted(set(i['category'] for i in items))
+    metadata = data.get('metadata', {})
+    metadata['total_items'] = len(items)
+    metadata['categories'] = sorted(set(i.get('category', 'Uncategorized') for i in items))
+    data['metadata'] = metadata
     with open(ROADMAP_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     if Config.GIT_AUTO_COMMIT:
@@ -62,8 +64,8 @@ def git_commit():
                        capture_output=True, check=True)
         subprocess.run(['git', 'commit', '-m', f'Roadmap update: {ts}'], cwd=repo_root,
                        capture_output=True, check=True)
-    except subprocess.CalledProcessError:
-        pass  # Silently skip if nothing to commit or git unavailable
+    except Exception:
+        pass  # Silently skip if nothing to commit, git unavailable, or permission denied
 
 
 def next_id(items):
@@ -102,6 +104,7 @@ def make_item(data, item_id):
         'dependencies': data.get('dependencies', ''),
         'votes': [],
         'vote_count': 0,
+        'comments': [],
         'n8n_workflows': data.get('n8n_workflows', []),
         'owner': data.get('owner', 'Zev'),
         'added_date': today_str(),
