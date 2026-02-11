@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-11T02:33:54Z",
+  "last_updated": "2026-02-11T15:28:49Z",
   "items": [
     {
       "id": 1,
@@ -1834,11 +1834,51 @@
           "edited_by": "Claude Code"
         }
       ]
+    },
+    {
+      "id": 66,
+      "name": "Complete Auth UX with Google OAuth & User Persistence",
+      "category": "Product Feature",
+      "description": "Landing page for unauthenticated users, Google OAuth integration with @dashq.io domain restriction, user menu dropdown (profile/logout), auth guard middleware, auto-create users on first login with persistence to JSON file, rejection page for non-DashQ emails. First user is admin, subsequent users are editors.",
+      "business_impact": "Enables team self-service signup, blocks external access, professional auth UX, no password management burden, users survive restarts",
+      "outcome": "Built complete auth UX with Google OAuth and user persistence. Landing page with Sign in with Google, @dashq.io email restriction via domain whitelist, user menu dropdown (avatar/initials, name, email, role, logout), auth guard (landing vs dashboard based on login state), auto-create users on first OAuth login, data/users.json persistence across restarts, first OAuth user is admin rest are editors, error template for rejected emails. 15 OAuth tests + 123 total tests passing. Files: static/landing.html, static/auth.js, templates/error.html, data/users.json, tests/test_oauth.py. Modified: api/auth.py, api/app.py, api/config.py, static/index.html, static/app.js, static/style.css, requirements.txt.",
+      "success_metric": "Users with @dashq.io emails can sign in with Google, external emails rejected, landing page shows when logged out, user menu works, users persist across restarts, first user is admin",
+      "impact_score": 10.0,
+      "ease_score": 6.0,
+      "priority_score": 10.0,
+      "build_time": "70 minutes",
+      "phase": "",
+      "expected_delivery": "2026-02-11",
+      "status": "DONE",
+      "start_date": null,
+      "completed_date": "2026-02-11",
+      "dependencies": "",
+      "votes": [],
+      "vote_count": 0,
+      "n8n_workflows": [],
+      "owner": "Claude Code",
+      "added_date": "2026-02-11",
+      "edit_history": [
+        {
+          "timestamp": "2026-02-11T15:28:40Z",
+          "field": "status",
+          "old_value": null,
+          "new_value": "DONE",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T15:28:49Z",
+          "field": "outcome",
+          "old_value": "TBD - define after initial build",
+          "new_value": "Built complete auth UX with Google OAuth and user persistence. Landing page with Sign in with Google, @dashq.io email restriction via domain whitelist, user menu dropdown (avatar/initials, name, email, role, logout), auth guard (landing vs dashboard based on login state), auto-create users on first OAuth login, data/users.json persistence across restarts, first OAuth user is admin rest are editors, error template for rejected emails. 15 OAuth tests + 123 total tests passing. Files: static/landing.html, static/auth.js, templates/error.html, data/users.json, tests/test_oauth.py. Modified: api/auth.py, api/app.py, api/config.py, static/index.html, static/app.js, static/style.css, requirements.txt.",
+          "edited_by": "Claude Code"
+        }
+      ]
     }
   ],
   "backlog": [],
   "metadata": {
-    "total_items": 65,
+    "total_items": 66,
     "categories": [
       "CS Enablement",
       "CS Intelligence",
