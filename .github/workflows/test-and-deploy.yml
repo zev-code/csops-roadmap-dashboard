@@ -28,6 +28,13 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      - name: "📦 Verify requirements install cleanly"
+        run: |
+          python3 -m venv /tmp/deploy-test-venv
+          /tmp/deploy-test-venv/bin/pip install -r requirements.txt --quiet
+          /tmp/deploy-test-venv/bin/python -c "import sys; sys.path.insert(0,'api'); from app import app; print('Flask app imports OK')"
+          rm -rf /tmp/deploy-test-venv
+
       - name: "🔍 Code Quality — Python syntax"
         run: python -c "
           import ast, os, sys;
@@ -126,4 +133,52 @@ jobs:
           DEPLOY_USER: ${{ secrets.VPS_USER }}
           DEPLOY_HOST: ${{ secrets.VPS_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" 'cd /var/www/csops-roadmap && git pull origin main && sudo python3 -m pip install -r requirements.txt --quiet && sudo systemctl restart csops-roadmap && sleep 2 && curl -sf http://127.0.0.1:5000/api/health || exit 1 && echo "Deploy successful"'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" << 'DEPLOY_SCRIPT'
+            set -e
+            cd /var/www/csops-roadmap
+
+            # Save current commit for rollback
+            PREV_COMMIT=$(git rev-parse HEAD)
+
+            # Pull latest code
+            git pull origin main
+
+            # Install/update dependencies (--break-system-packages for PEP 668 on Debian 12+)
+            sudo python3 -m pip install -r requirements.txt --quiet --break-system-packages
+
+            # Restart service and verify
+            sudo systemctl restart csops-roadmap
+            sleep 2
+
+            # Health check with retry
+            HEALTHY=false
+            for i in 1 2 3; do
+              if curl -sf http://127.0.0.1:5000/api/health > /dev/null; then
+                HEALTHY=true
+                break
+              fi
+              echo "Health check attempt $i failed, waiting..."
+              sleep 3
+            done
+
+            if [ "$HEALTHY" = true ]; then
+              echo "Deploy successful"
+              exit 0
+            fi
+
+            # --- AUTO-ROLLBACK ---
+            echo "Deploy FAILED — rolling back to $PREV_COMMIT"
+            sudo journalctl -u csops-roadmap --no-pager -n 20
+            git checkout "$PREV_COMMIT"
+            sudo python3 -m pip install -r requirements.txt --quiet --break-system-packages
+            sudo systemctl restart csops-roadmap
+            sleep 2
+
+            if curl -sf http://127.0.0.1:5000/api/health > /dev/null; then
+              echo "Rollback successful — production restored to previous version"
+            else
+              echo "CRITICAL: Rollback also failed!"
+              sudo journalctl -u csops-roadmap --no-pager -n 30
+            fi
+            exit 1
+          DEPLOY_SCRIPT

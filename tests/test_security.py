@@ -204,6 +204,106 @@ class TestCSPConfig:
 
 
 # ---------------------------------------------------------------------------
+# Dependency integrity — catch "tests pass but deploy fails"
+# ---------------------------------------------------------------------------
+
+class TestDependencyIntegrity:
+    """Prevent: App imports packages not in requirements.txt."""
+
+    # Packages that are part of the Python stdlib or project-local
+    STDLIB_AND_LOCAL = {
+        'functools', 'flask', 'flask_cors', 'flask_login',
+        'werkzeug', 'config', 'auth', 'hmac', 'json', 'os',
+        'subprocess', 'datetime', 'sys', 'pathlib', 'hashlib',
+        'secrets', 'logging', 'collections', 'typing', 'abc',
+        're', 'io', 'time', 'copy', 'math', 'uuid', 'base64',
+        'urllib', 'importlib', 'contextlib', 'dataclasses',
+        'markupsafe', 'jinja2', 'click', 'itsdangerous',
+        'dotenv', 'python-dotenv',
+    }
+
+    # Map import names to requirement names (when they differ)
+    IMPORT_TO_REQ = {
+        'flask': 'flask',
+        'flask_cors': 'flask-cors',
+        'flask_login': 'flask-login',
+        'dotenv': 'python-dotenv',
+        'werkzeug': 'flask',  # transitive dep of flask
+        'markupsafe': 'flask',
+        'jinja2': 'flask',
+        'click': 'flask',
+        'itsdangerous': 'flask',
+    }
+
+    def _get_requirements(self):
+        req_path = os.path.join(PROJECT_ROOT, 'requirements.txt')
+        with open(req_path, 'r') as f:
+            lines = f.read().strip().splitlines()
+        return {line.split('==')[0].strip().lower() for line in lines if line.strip() and not line.startswith('#')}
+
+    def _get_imports(self):
+        """Extract all import names from api/*.py files."""
+        imports = set()
+        for fname in os.listdir(API_DIR):
+            if not fname.endswith('.py'):
+                continue
+            fpath = os.path.join(API_DIR, fname)
+            with open(fpath, 'r', encoding='utf-8') as f:
+                source = f.read()
+            try:
+                tree = ast.parse(source)
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        imports.add(alias.name.split('.')[0])
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        imports.add(node.module.split('.')[0])
+        return imports
+
+    def test_all_imports_are_installable(self):
+        """Every import in api/*.py must be stdlib, local, or in requirements.txt."""
+        reqs = self._get_requirements()
+        imports = self._get_imports()
+        missing = []
+        for imp in imports:
+            if imp in self.STDLIB_AND_LOCAL:
+                continue
+            # Check if the import maps to a known requirement
+            req_name = self.IMPORT_TO_REQ.get(imp, imp).lower()
+            if req_name not in reqs:
+                missing.append(f"{imp} (expected '{req_name}' in requirements.txt)")
+        assert not missing, (
+            f"Imports not covered by requirements.txt:\n" +
+            "\n".join(f"  - {m}" for m in sorted(missing))
+        )
+
+    def test_no_unused_requirements(self):
+        """Every package in requirements.txt should be imported somewhere."""
+        reqs = self._get_requirements()
+        imports = self._get_imports()
+        # Build reverse map: requirement name -> possible import names
+        req_to_imports = {}
+        for imp, req in self.IMPORT_TO_REQ.items():
+            req_to_imports.setdefault(req.lower(), set()).add(imp)
+        # Also add identity mapping
+        for req in reqs:
+            req_to_imports.setdefault(req, set()).add(req.replace('-', '_'))
+
+        unused = []
+        for req in reqs:
+            possible = req_to_imports.get(req, {req.replace('-', '_')})
+            if not any(p in imports for p in possible):
+                unused.append(req)
+        assert not unused, (
+            f"Requirements not imported by any api/*.py file:\n" +
+            "\n".join(f"  - {u}" for u in sorted(unused))
+        )
+
+
+# ---------------------------------------------------------------------------
 # Deployment config validation
 # ---------------------------------------------------------------------------
 

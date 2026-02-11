@@ -150,7 +150,12 @@ def static_files(path):
 
 @app.route('/api/health')
 def health():
-    return jsonify({'status': 'ok'})
+    try:
+        data = load_roadmap()
+        item_count = len(data.get('items', []))
+        return jsonify({'status': 'ok', 'items': item_count})
+    except Exception:
+        return jsonify({'status': 'error', 'error': 'Failed to load roadmap'}), 500
 
 
 # --- Auth ---
