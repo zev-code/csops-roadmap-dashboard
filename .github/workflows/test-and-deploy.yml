@@ -144,10 +144,11 @@ jobs:
             PREV_COMMIT=$(git rev-parse HEAD)
 
             # --- PROTECT DATA FILES FROM GIT CONFLICTS ---
-            # Move runtime data files out of the way so git pull never conflicts
-            # (users.json is gitignored but may still be tracked on older checkouts)
+            # Move ALL runtime data files out of the way so git pull never conflicts
+            # (roadmap.json is modified by users via the app, users.json may be tracked)
             echo "Protecting data files..."
             mkdir -p /tmp/csops-data-backup
+            cp data/roadmap.json /tmp/csops-data-backup/roadmap.json 2>/dev/null || true
             mv data/users.json /tmp/csops-data-backup/users.json 2>/dev/null || true
             git rm --cached data/users.json 2>/dev/null || true
             git checkout -- data/ 2>/dev/null || true
@@ -155,8 +156,9 @@ jobs:
             # Pull latest code (data files are safely out of the way)
             git pull origin main
 
-            # Restore runtime data files
+            # Restore runtime data files (production data takes priority over repo)
             echo "Restoring data files..."
+            cp /tmp/csops-data-backup/roadmap.json data/roadmap.json 2>/dev/null || true
             mv /tmp/csops-data-backup/users.json data/users.json 2>/dev/null || true
             rm -rf /tmp/csops-data-backup
 
