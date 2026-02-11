@@ -967,12 +967,13 @@ async function loadAndRenderComments(itemId) {
   const formEl = document.getElementById('commentForm');
   if (!listEl) return;
 
-  // Show form if logged in
+  // Show form if logged in (attach listeners only once via data attribute)
   if (formEl && currentUser) {
     formEl.style.display = 'flex';
     const submitBtn = document.getElementById('commentSubmit');
     const input = document.getElementById('commentInput');
-    if (submitBtn && input) {
+    if (submitBtn && input && !submitBtn.dataset.bound) {
+      submitBtn.dataset.bound = '1';
       submitBtn.addEventListener('click', async () => {
         const text = input.value.trim();
         if (!text) return;
@@ -1120,7 +1121,6 @@ function renderActivityLog(item) {
       ${entriesHtml}
       ${moreHtml}
     </div>
-    <div class="detail__activity-note-placeholder">\u{1F4AC} Add note (coming soon)</div>
   </div>`;
 }
 

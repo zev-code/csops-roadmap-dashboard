@@ -628,16 +628,15 @@ def manage_comment(item_id, comment_id):
     return jsonify({'success': True})
 
 
-# --- Error handlers ---
+# --- Error handlers (always return JSON for API clients) ---
 
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({'error': 'Not found'}), 404
+from werkzeug.exceptions import HTTPException
 
-
-@app.errorhandler(400)
-def bad_request(e):
-    return jsonify({'error': 'Bad request'}), 400
+@app.errorhandler(HTTPException)
+def handle_http_error(e):
+    if e.code and e.code >= 400:
+        return jsonify({'error': e.description or e.name}), e.code
+    return e
 
 
 @app.errorhandler(500)

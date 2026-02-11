@@ -5,7 +5,7 @@ async function checkAuth() {
   try {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (res.ok) {
-      currentUser = await res.json();
+      currentUser = await safeJson(res);
       updateAuthUI();
     }
   } catch (_) {
@@ -20,7 +20,7 @@ async function doLogin(username, password, remember) {
     credentials: 'same-origin',
     body: JSON.stringify({ username, password, remember }),
   });
-  const data = await res.json();
+  const data = await safeJson(res);
   if (!res.ok) throw new Error(data.error || 'Login failed');
   currentUser = data.user;
   updateAuthUI();
@@ -201,15 +201,27 @@ async function voteOnItem(itemId, voteType) {
     credentials: 'same-origin',
     body: JSON.stringify({ vote: voteType || 'up' }),
   });
-  const data = await res.json();
+  const data = await safeJson(res);
   if (!res.ok) throw new Error(data.error || 'Vote failed');
   return data;
 }
 
+// ───── Safe JSON helper ─────
+async function safeJson(res) {
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    if (res.status === 401) throw new Error('Session expired — please log in again');
+    throw new Error(`Server error (${res.status})`);
+  }
+  return res.json();
+}
+
 // ───── Comments ─────
 async function loadComments(itemId) {
-  const res = await fetch(`/api/roadmap/items/${itemId}/comments`);
-  const data = await res.json();
+  const res = await fetch(`/api/roadmap/items/${itemId}/comments`, {
+    credentials: 'same-origin',
+  });
+  const data = await safeJson(res);
   if (!res.ok) throw new Error(data.error || 'Failed to load comments');
   return data.comments || [];
 }
@@ -226,7 +238,7 @@ async function addComment(itemId, text) {
     credentials: 'same-origin',
     body: JSON.stringify({ comment: text }),
   });
-  const data = await res.json();
+  const data = await safeJson(res);
   if (!res.ok) throw new Error(data.error || 'Failed to add comment');
   return data.comment;
 }
@@ -236,7 +248,7 @@ async function deleteComment(itemId, commentId) {
     method: 'DELETE',
     credentials: 'same-origin',
   });
-  const data = await res.json();
+  const data = await safeJson(res);
   if (!res.ok) throw new Error(data.error || 'Failed to delete comment');
   return data;
 }

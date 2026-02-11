@@ -1628,6 +1628,7 @@ body.dark .detail__alert--overdue {
 
 .comment-form {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
   margin-top: 12px;
 }
