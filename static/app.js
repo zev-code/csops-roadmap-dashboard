@@ -865,19 +865,44 @@ function renderDetailView(item) {
   // Activity log
   const activityHtml = renderActivityLog(item);
 
+  // Voting controls
+  const voteCount = item.vote_count || 0;
+  const userVote = item.user_vote || null;
+  const votingHtml = `<div class="vote-controls" id="voteControls">
+    <button class="vote-btn${userVote === 'up' ? ' vote-btn--active' : ''}" data-vote="up" title="Upvote" aria-label="Upvote">&#9650;</button>
+    <span class="vote-count" id="voteCount">${voteCount}</span>
+    <button class="vote-btn${userVote === 'down' ? ' vote-btn--active' : ''}" data-vote="down" title="Downvote" aria-label="Downvote">&#9660;</button>
+  </div>`;
+
+  // Comments / Notes section
+  const commentsHtml = `<div class="comments-section" id="commentsSection">
+    <div class="comments-header">Notes</div>
+    <div id="commentsList"><span class="detail__field-value--muted" style="font-size:13px">Loading...</span></div>
+    <div class="comment-form" id="commentForm" style="display:none">
+      <textarea id="commentInput" placeholder="Add a note..." rows="2" maxlength="5000"></textarea>
+      <button class="btn btn--primary btn--sm" id="commentSubmit">Post</button>
+    </div>
+  </div>`;
+
   detailBody.innerHTML = `
     ${heroHtml}
-    ${metadataHtml}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="flex:1">${metadataHtml}</div>
+      ${votingHtml}
+    </div>
     ${alertsHtml}
     ${collapsible('impact', '\u{1F4CB} Business impact & details', section1)}
     ${collapsible('timeline', '\u{1F4C5} Timeline & history', section2)}
     ${collapsible('technical', '\u{2699}\uFE0F Technical details', section3)}
     ${activityHtml}
+    ${commentsHtml}
   `;
 
   attachEditableHandlers();
   attachCollapsibleHandlers(item.id);
   attachAlertActions(item);
+  attachVoteHandlers(item);
+  loadAndRenderComments(item.id);
   // "View all" in activity log
   const showAllBtn = detailBody.querySelector('#activityShowAll');
   if (showAllBtn) {
@@ -904,6 +929,107 @@ function renderDetailView(item) {
         return `<div class="detail__activity-entry"><span class="detail__activity-user">${escapeHtml(e.user)}</span> ${escapeHtml(actionText)} <span class="detail__activity-time">• ${escapeHtml(time)}</span>${detailText ? `<div class="detail__activity-detail">${escapeHtml(detailText)}</div>` : ''}</div>`;
       }).join('');
     });
+  }
+}
+
+// ───── Vote Handlers ─────
+function attachVoteHandlers(item) {
+  const container = document.getElementById('voteControls');
+  if (!container) return;
+  container.querySelectorAll('.vote-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const voteType = btn.dataset.vote;
+      try {
+        const result = await voteOnItem(item.id, voteType);
+        if (!result) return; // login required, modal opened
+        // Update vote count display
+        const countEl = document.getElementById('voteCount');
+        if (countEl) countEl.textContent = result.vote_count;
+        // Update active states
+        container.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('vote-btn--active'));
+        if (result.user_vote) {
+          const activeBtn = container.querySelector(`[data-vote="${result.user_vote}"]`);
+          if (activeBtn) activeBtn.classList.add('vote-btn--active');
+        }
+        // Update the item in local data
+        item.vote_count = result.vote_count;
+        item.user_vote = result.user_vote;
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+}
+
+// ───── Comments / Notes ─────
+async function loadAndRenderComments(itemId) {
+  const listEl = document.getElementById('commentsList');
+  const formEl = document.getElementById('commentForm');
+  if (!listEl) return;
+
+  // Show form if logged in
+  if (formEl && currentUser) {
+    formEl.style.display = 'flex';
+    const submitBtn = document.getElementById('commentSubmit');
+    const input = document.getElementById('commentInput');
+    if (submitBtn && input) {
+      submitBtn.addEventListener('click', async () => {
+        const text = input.value.trim();
+        if (!text) return;
+        try {
+          submitBtn.disabled = true;
+          await addComment(itemId, text);
+          input.value = '';
+          await loadAndRenderComments(itemId);
+          showToast('Note added');
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          submitBtn.click();
+        }
+      });
+    }
+  }
+
+  try {
+    const comments = await loadComments(itemId);
+    if (comments.length === 0) {
+      listEl.innerHTML = '<span class="detail__field-value--muted" style="font-size:13px">No notes yet</span>';
+      return;
+    }
+    listEl.innerHTML = comments.map(c => {
+      const canDelete = currentUser && (currentUser.username === c.author || currentUser.role === 'admin');
+      return `<div class="comment">
+        <div class="comment__meta">
+          <span class="comment__author">${escapeHtml(c.author)}</span>
+          <span class="comment__time">${relativeTime(c.created_at)}</span>
+          ${canDelete ? `<button class="comment__delete" data-comment-id="${c.id}" title="Delete note">&times;</button>` : ''}
+        </div>
+        <div class="comment__text">${escapeHtml(c.comment)}</div>
+      </div>`;
+    }).join('');
+
+    // Attach delete handlers
+    listEl.querySelectorAll('.comment__delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const commentId = btn.dataset.commentId;
+        try {
+          await deleteComment(itemId, commentId);
+          await loadAndRenderComments(itemId);
+          showToast('Note deleted');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+  } catch (err) {
+    listEl.innerHTML = '<span class="detail__field-value--muted" style="font-size:13px">Failed to load notes</span>';
   }
 }
 
