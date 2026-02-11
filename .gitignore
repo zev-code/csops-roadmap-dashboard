@@ -1,18 +1,33 @@
+# Secrets & env
 .env
+
+# Python
 *.pyc
 __pycache__/
-.DS_Store
 venv/
-*.log
-node_modules/
 .coverage
 htmlcov/
+
+# OS artifacts
+.DS_Store
 nul
 *.code-workspace
+
+# Test artifacts
 test-screenshot.png
 test-results.json
 test-site.mjs
 tests/screenshots/
+
+# Node
+node_modules/
+
+# Build / logs
+*.log
+*.exe
+
+# Project-specific
 .claude/settings.local.json
-DEPLOYMENT.md
+.mcp.json
 data/users.json
+DEPLOYMENT.md
