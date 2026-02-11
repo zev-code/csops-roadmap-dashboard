@@ -56,8 +56,7 @@
   --cat-uncategorized-text: #4B5563;
 
   /* Layout */
-  --header-height: 64px;
-  --controls-height: 64px;
+  --header-height: 56px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -129,21 +128,23 @@ body {
   align-items: center;
   justify-content: space-between;
   height: var(--header-height);
-  padding: 0 24px;
+  padding: 0 20px;
   background: var(--bg-header);
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-sm);
   transition: background-color var(--transition), box-shadow var(--transition), border-color var(--transition);
+  gap: 16px;
 }
 
 .header__left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .header__title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.3px;
@@ -151,18 +152,48 @@ body {
   white-space: nowrap;
 }
 
+.header__center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
 .header__right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.header__updated {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-muted);
-  transition: color var(--transition);
-  white-space: nowrap;
+/* ───── Green Circle Add Button ───── */
+.btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--green);
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.btn-add:hover {
+  background: var(--green-hover);
+  box-shadow: var(--shadow-md);
+  transform: scale(1.08);
+}
+
+.btn-add:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
 }
 
 /* Theme toggle */
@@ -196,34 +227,9 @@ body {
   transition: transform 0.4s ease, opacity 0.3s ease;
 }
 
-/* ───── Controls Bar ───── */
-.controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 24px;
-  background: var(--bg-header);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background-color var(--transition), border-color var(--transition);
-  flex-wrap: wrap;
-}
-
-.controls__left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.controls__right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
+/* ───── Search (in header) ───── */
 .controls__search {
-  min-width: 200px;
-  max-width: 340px;
+  flex: 1;
   position: relative;
 }
 
@@ -240,13 +246,13 @@ body {
 
 .controls__search input {
   width: 100%;
-  padding: 8px 12px 8px 36px;
+  padding: 7px 12px 7px 34px;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-full);
   background: var(--bg-input);
   color: var(--text-primary);
   font-family: 'Poppins', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   transition: all var(--transition);
 }
@@ -395,10 +401,13 @@ body {
 }
 
 .filter-menu__option-swatch {
+  display: inline-block;
   width: 10px;
+  min-width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .filter-menu__divider {
@@ -523,7 +532,7 @@ body {
   gap: 16px;
   padding: 20px 24px 24px;
   overflow-x: auto;
-  min-height: calc(100vh - var(--header-height) - var(--controls-height) - 60px);
+  min-height: calc(100vh - var(--header-height) - 60px);
 }
 
 .kanban__column {
@@ -531,7 +540,7 @@ body {
   min-width: 280px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - var(--header-height) - var(--controls-height) - 60px);
+  max-height: calc(100vh - var(--header-height) - 60px);
 }
 
 .kanban__column-header {
@@ -1799,35 +1808,24 @@ body.dark .detail__alert--overdue {
 
 @media (max-width: 640px) {
   .header {
-    padding: 0 16px;
+    padding: 0 12px;
     gap: 8px;
   }
 
   .header__title {
-    font-size: 16px;
+    font-size: 14px;
   }
 
-  .header__updated {
+  .header__center {
+    max-width: 200px;
+  }
+
+  .filter-menu__trigger span {
     display: none;
   }
 
-  .controls {
-    padding: 12px 16px;
-    gap: 8px;
-  }
-
-  .controls__left {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .controls__search {
-    min-width: 0;
-    flex: 1;
-  }
-
   .filter-menu__panel {
-    right: -16px;
+    right: -12px;
     min-width: 220px;
   }
 
