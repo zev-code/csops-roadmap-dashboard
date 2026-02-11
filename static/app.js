@@ -1000,8 +1000,8 @@ function renderDetailView(item) {
     ${collapsible('impact', '\u{1F4CB} Business impact & details', section1)}
     ${collapsible('timeline', '\u{1F4C5} Timeline & history', section2)}
     ${collapsible('technical', '\u{2699}\uFE0F Technical details', section3)}
-    ${activityHtml}
     ${commentsHtml}
+    ${activityHtml}
   `;
 
   attachEditableHandlers();
