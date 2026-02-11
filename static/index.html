@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CS Ops Automation Roadmap</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=1">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
@@ -39,21 +39,40 @@
 
   <!-- Controls -->
   <div class="controls">
-    <div class="controls__search">
-      <span class="controls__search-icon">&#128269;</span>
-      <input type="text" id="searchInput" placeholder="Search...">
+    <div class="controls__left">
+      <div class="controls__search">
+        <span class="controls__search-icon">&#128269;</span>
+        <input type="text" id="searchInput" placeholder="Search...">
+      </div>
+      <button class="btn btn--primary" id="addItemBtn">Add</button>
     </div>
-    <select id="categoryFilter">
-      <option value="">All Categories</option>
-    </select>
-    <select id="sortSelect">
-      <option value="priority">Sort: Priority</option>
-      <option value="id">Sort: ID</option>
-      <option value="name">Sort: Name</option>
-      <option value="impact">Sort: Impact</option>
-      <option value="ease">Sort: Ease</option>
-    </select>
-    <button class="btn btn--primary" id="addItemBtn">Add</button>
+    <div class="controls__right">
+      <div class="filter-menu" id="filterMenu">
+        <button class="filter-menu__trigger" id="filterToggle" aria-expanded="false" aria-haspopup="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          <span>Filter</span>
+          <span class="filter-menu__badge" id="filterBadge"></span>
+        </button>
+        <div class="filter-menu__panel" id="filterPanel">
+          <div class="filter-menu__section">
+            <div class="filter-menu__section-title">Category</div>
+            <div class="filter-menu__options" id="filterCategories"></div>
+          </div>
+          <div class="filter-menu__divider"></div>
+          <div class="filter-menu__section">
+            <div class="filter-menu__section-title">Sort by</div>
+            <div class="filter-menu__options" id="filterSort">
+              <label class="filter-menu__option"><input type="radio" name="sort" value="priority" checked><span>Priority</span></label>
+              <label class="filter-menu__option"><input type="radio" name="sort" value="id"><span>ID</span></label>
+              <label class="filter-menu__option"><input type="radio" name="sort" value="name"><span>Name</span></label>
+              <label class="filter-menu__option"><input type="radio" name="sort" value="impact"><span>Impact</span></label>
+              <label class="filter-menu__option"><input type="radio" name="sort" value="ease"><span>Ease</span></label>
+            </div>
+          </div>
+          <button class="filter-menu__clear" id="filterClear">Clear all</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Kanban Board -->
@@ -157,6 +176,6 @@
 
   <script src="/static/confetti.min.js"></script>
   <script src="auth.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

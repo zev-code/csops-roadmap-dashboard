@@ -21,5 +21,8 @@ class Config:
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
     ALLOWED_EMAIL_DOMAINS = [d.strip().lower() for d in os.getenv('ALLOWED_EMAIL_DOMAINS', 'dashq.io').split(',')]
 
+    # Self-healing: n8n webhook URL that receives 500 errors for AI auto-fix
+    ERROR_WEBHOOK_URL = os.getenv('ERROR_WEBHOOK_URL')
+
     # User persistence
     USERS_FILE = os.path.join(DATA_DIR, 'users.json')

@@ -131,13 +131,19 @@ function celebrateDone(item, originEl) {
   localStorage.setItem('confetti_done_count', String(doneCountToday));
 }
 
+// ───── Filter State ─────
+let selectedCategories = new Set();
+let currentSort = 'priority';
+
 // ───── DOM refs ─────
 const $ = (id) => document.getElementById(id);
 const kanban = $('kanban');
 const loadingState = $('loadingState');
 const searchInput = $('searchInput');
-const categoryFilter = $('categoryFilter');
-const sortSelect = $('sortSelect');
+const filterToggle = $('filterToggle');
+const filterPanel = $('filterPanel');
+const filterBadge = $('filterBadge');
+const filterCategoriesEl = $('filterCategories');
 const addItemBtn = $('addItemBtn');
 const detailModal = $('detailModal');
 const detailTitle = $('detailTitle');
@@ -182,14 +188,13 @@ themeToggle.addEventListener('click', toggleTheme);
 const API = '/api';
 
 function handleApiError(res, json) {
-  if (res.status >= 500) {
-    showErrorBanner({
-      error: json.error || 'Internal server error',
-      detail: json.detail || json.error || 'Something went wrong on the server',
-      ref: json.ref || '',
-      endpoint: json.endpoint || '',
-    });
-  }
+  showErrorBanner({
+    error: json.error || `Error ${res.status}`,
+    detail: json.detail || json.error || `Request failed with status ${res.status}`,
+    ref: json.ref || '',
+    endpoint: json.endpoint || '',
+    status: res.status,
+  });
   throw new Error(json.error || `Request failed (${res.status})`);
 }
 
@@ -415,11 +420,9 @@ function statusOptions(selected) {
 // ───── Filtering & Sorting ─────
 function applyFilters() {
   const query = searchInput.value.toLowerCase().trim();
-  const cat = categoryFilter.value;
-  const sort = sortSelect.value;
 
   filteredItems = allItems.filter(item => {
-    if (cat && item.category !== cat) return false;
+    if (selectedCategories.size > 0 && !selectedCategories.has(item.category)) return false;
     if (query) {
       const searchable = `${item.name} ${item.description} ${item.category} ${item.business_impact} ${item.dependencies}`.toLowerCase();
       if (!searchable.includes(query)) return false;
@@ -436,7 +439,7 @@ function applyFilters() {
     impact: (a, b) => recency(a, b) || (b.impact_score || 0) - (a.impact_score || 0),
     ease: (a, b) => recency(a, b) || (b.ease_score || 0) - (a.ease_score || 0),
   };
-  filteredItems.sort(sorters[sort] || sorters.priority);
+  filteredItems.sort(sorters[currentSort] || sorters.priority);
 
   renderKanban();
 }
@@ -1581,18 +1584,90 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ───── Populate category dropdowns ─────
+// ───── Populate category filter + add-form dropdown ─────
 function populateCategories(categories) {
-  categoryFilter.innerHTML = '<option value="">All Categories</option>';
+  // Build checkboxes for unified filter panel
+  filterCategoriesEl.innerHTML = '';
   categories.forEach(cat => {
-    categoryFilter.innerHTML += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+    const catStyle = getCategoryStyle(cat);
+    const swatchBg = catStyle.bg || 'var(--bg-badge)';
+    const label = document.createElement('label');
+    label.className = 'filter-menu__option';
+    label.innerHTML = `<input type="checkbox" value="${escapeHtml(cat)}"><span class="filter-menu__option-swatch" style="background:${swatchBg}"></span><span>${escapeHtml(cat)}</span>`;
+    const checkbox = label.querySelector('input');
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        selectedCategories.add(cat);
+      } else {
+        selectedCategories.delete(cat);
+      }
+      updateFilterBadge();
+      applyFilters();
+    });
+    filterCategoriesEl.appendChild(label);
   });
 
+  // Add-form category dropdown (unchanged behavior)
   addCategory.innerHTML = '<option value="Uncategorized">Uncategorized</option>';
   categories.filter(c => c !== 'Uncategorized').forEach(cat => {
     addCategory.innerHTML += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
   });
 }
+
+// ───── Filter Panel Toggle ─────
+function toggleFilterPanel() {
+  const isOpen = filterPanel.classList.toggle('filter-menu__panel--open');
+  filterToggle.setAttribute('aria-expanded', isOpen);
+}
+
+function closeFilterPanel() {
+  filterPanel.classList.remove('filter-menu__panel--open');
+  filterToggle.setAttribute('aria-expanded', 'false');
+}
+
+function updateFilterBadge() {
+  const count = selectedCategories.size;
+  if (count > 0) {
+    filterBadge.textContent = count;
+    filterBadge.classList.add('filter-menu__badge--visible');
+  } else {
+    filterBadge.classList.remove('filter-menu__badge--visible');
+  }
+}
+
+function clearAllFilters() {
+  selectedCategories.clear();
+  filterCategoriesEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  // Reset sort to priority
+  currentSort = 'priority';
+  const sortRadios = document.querySelectorAll('#filterSort input[type="radio"]');
+  sortRadios.forEach(r => { r.checked = r.value === 'priority'; });
+  updateFilterBadge();
+  applyFilters();
+}
+
+filterToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleFilterPanel();
+});
+
+// Close panel when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#filterMenu')) {
+    closeFilterPanel();
+  }
+});
+
+// Sort radio change handler
+document.querySelectorAll('#filterSort input[type="radio"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    currentSort = radio.value;
+    applyFilters();
+  });
+});
+
+// Clear all filters button
+$('filterClear').addEventListener('click', clearAllFilters);
 
 // ───── Init ─────
 async function init() {
@@ -1623,7 +1698,5 @@ async function init() {
 }
 
 searchInput.addEventListener('input', applyFilters);
-categoryFilter.addEventListener('change', applyFilters);
-sortSelect.addEventListener('change', applyFilters);
 
 document.addEventListener('DOMContentLoaded', init);

@@ -634,24 +634,72 @@ def manage_comment(item_id, comment_id):
 # --- Error handlers (always return JSON for API clients) ---
 
 from werkzeug.exceptions import HTTPException
+import re as _re
+
+
+def _fire_error_webhook(status_code, error_msg, tb_str=''):
+    """Send error details to the self-healing AI agent via n8n webhook."""
+    if not Config.ERROR_WEBHOOK_URL:
+        return
+    try:
+        import urllib.request
+        ref = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
+        endpoint = request.path if request else 'unknown'
+        method = request.method if request else 'unknown'
+
+        # Extract source files from traceback (project files only)
+        source_frames = []
+        for match in _re.finditer(r'File "([^"]+)", line (\d+)', tb_str):
+            filepath, lineno = match.group(1), int(match.group(2))
+            if 'site-packages' not in filepath and 'lib/python' not in filepath:
+                source_frames.append({'file': filepath, 'line': lineno})
+
+        payload = json.dumps({
+            'ref': ref,
+            'status_code': status_code,
+            'error': error_msg[:500],
+            'traceback': tb_str[:3000],
+            'endpoint': f'{method} {endpoint}',
+            'source_frames': source_frames[-5:],
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+        })
+        req = urllib.request.Request(
+            Config.ERROR_WEBHOOK_URL,
+            data=payload.encode(),
+            headers={'Content-Type': 'application/json'},
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        pass  # Never let webhook failure break the error response
+
 
 @app.errorhandler(HTTPException)
 def handle_http_error(e):
     if e.code and e.code >= 400:
-        return jsonify({'error': e.description or e.name}), e.code
+        _fire_error_webhook(e.code, e.description or e.name)
+        ref = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
+        endpoint = request.path if request else 'unknown'
+        method = request.method if request else 'unknown'
+        return jsonify({
+            'error': e.description or e.name,
+            'ref': ref,
+            'endpoint': f'{method} {endpoint}',
+        }), e.code
     return e
 
 
 @app.errorhandler(500)
 def server_error(e):
     import traceback
+    tb_str = traceback.format_exc()
     traceback.print_exc()
-    # Build a human-readable error with reference code for debugging
     ref = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
     endpoint = request.path if request else 'unknown'
     method = request.method if request else 'unknown'
     detail = str(getattr(e, 'original_exception', e) or 'Unknown error')
-    # Truncate long tracebacks but keep the useful part
+
+    _fire_error_webhook(500, detail, tb_str)
+
     if len(detail) > 200:
         detail = detail[:200] + '...'
     return jsonify({
