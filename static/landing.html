@@ -63,6 +63,62 @@
       transform: translateY(-1px);
     }
     .google-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      color: #64748b;
+      font-size: 0.8125rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #334155;
+    }
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+    .login-form input {
+      padding: 0.75rem 1rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e5e7eb;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .login-form input:focus {
+      border-color: #60a5fa;
+    }
+    .login-form input::placeholder { color: #64748b; }
+    .login-btn {
+      padding: 0.75rem;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .login-btn:hover { background: #1d4ed8; }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .login-error {
+      color: #f87171;
+      font-size: 0.8125rem;
+      min-height: 1.25rem;
+    }
     .landing__footer {
       margin-top: 1.5rem;
       font-size: 0.8125rem;
@@ -79,7 +135,7 @@
       Track automation initiatives, collaborate with your team,
       and build the future of CS operations.
     </p>
-    <a href="/auth/google" class="google-btn">
+    <a href="/auth/google" class="google-btn" id="googleBtn">
       <svg viewBox="0 0 24 24">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -88,9 +144,46 @@
       </svg>
       Sign in with Google
     </a>
+    <div class="divider">or</div>
+    <form class="login-form" id="loginForm">
+      <input type="text" id="loginUser" placeholder="Username" autocomplete="username" required>
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit" class="login-btn" id="loginBtn">Sign in</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
     <p class="landing__footer">
       <strong>DashQ</strong> team members only &mdash; @dashq.io
     </p>
   </div>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+      errEl.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      try {
+        const resp = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            username: document.getElementById('loginUser').value.trim(),
+            password: document.getElementById('loginPass').value,
+          }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          window.location.href = '/';
+        } else {
+          errEl.textContent = data.error || 'Invalid credentials';
+        }
+      } catch (err) {
+        errEl.textContent = 'Connection error';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+    });
+  </script>
 </body>
 </html>
