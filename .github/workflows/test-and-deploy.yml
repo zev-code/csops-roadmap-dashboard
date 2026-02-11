@@ -143,23 +143,20 @@ jobs:
             # Save current commit for rollback
             PREV_COMMIT=$(git rev-parse HEAD)
 
-            # --- PROTECT DATA FILES FROM GIT CONFLICTS ---
-            # Move ALL runtime data files out of the way so git pull never conflicts
-            # (roadmap.json is modified by users via the app, users.json may be tracked)
-            echo "Protecting data files..."
+            # --- SELF-HEALING DEPLOY: immune to local file conflicts ---
+            # Backup ALL runtime data (production data always wins over repo)
+            echo "Backing up production data..."
             mkdir -p /tmp/csops-data-backup
-            cp data/roadmap.json /tmp/csops-data-backup/roadmap.json 2>/dev/null || true
-            mv data/users.json /tmp/csops-data-backup/users.json 2>/dev/null || true
-            git rm --cached data/users.json 2>/dev/null || true
-            git checkout -- data/ 2>/dev/null || true
+            cp -a data/ /tmp/csops-data-backup/
 
-            # Pull latest code (data files are safely out of the way)
-            git pull origin main
+            # Force-sync code to match remote (cannot fail due to local changes)
+            git fetch origin main
+            git reset --hard origin/main
 
-            # Restore runtime data files (production data takes priority over repo)
-            echo "Restoring data files..."
-            cp /tmp/csops-data-backup/roadmap.json data/roadmap.json 2>/dev/null || true
-            mv /tmp/csops-data-backup/users.json data/users.json 2>/dev/null || true
+            # Restore production data files over repo seed data
+            echo "Restoring production data..."
+            cp /tmp/csops-data-backup/data/roadmap.json data/roadmap.json 2>/dev/null || true
+            cp /tmp/csops-data-backup/data/users.json data/users.json 2>/dev/null || true
             rm -rf /tmp/csops-data-backup
 
             # Ensure data files exist and are writable by the Flask service (www-data)
