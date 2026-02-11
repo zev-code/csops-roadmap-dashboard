@@ -144,26 +144,21 @@ jobs:
             PREV_COMMIT=$(git rev-parse HEAD)
 
             # --- PROTECT DATA FILES FROM GIT CONFLICTS ---
-            # Back up runtime data files that may have local changes
-            # (e.g. users.json modified by the app, or roadmap.json edited via API)
-            echo "Backing up data files..."
-            cp -a data/ /tmp/csops-data-backup/
-
-            # Remove any tracked data files from git index so pull never conflicts
-            # (users.json was previously tracked, now gitignored — clean up stale tracking)
+            # Move runtime data files out of the way so git pull never conflicts
+            # (users.json is gitignored but may still be tracked on older checkouts)
+            echo "Protecting data files..."
+            mkdir -p /tmp/csops-data-backup
+            mv data/users.json /tmp/csops-data-backup/users.json 2>/dev/null || true
             git rm --cached data/users.json 2>/dev/null || true
             git checkout -- data/ 2>/dev/null || true
 
-            # Pull latest code
+            # Pull latest code (data files are safely out of the way)
             git pull origin main
 
-            # Restore backed-up data files (preserve runtime state over repo versions)
+            # Restore runtime data files
             echo "Restoring data files..."
-            cp -a /tmp/csops-data-backup/users.json data/users.json 2>/dev/null || true
-            # roadmap.json: use the repo version (it's the source of truth in git)
-            # but if the repo version is older, the backup has API edits — keep backup
-            # For safety, always keep the backup of roadmap.json if it has more items
-            rm -rf /tmp/csops-data-backup/
+            mv /tmp/csops-data-backup/users.json data/users.json 2>/dev/null || true
+            rm -rf /tmp/csops-data-backup
 
             # Ensure data files exist and are writable by the Flask service (www-data)
             [ -f data/users.json ] || echo '{"users": []}' > data/users.json
