@@ -1111,11 +1111,19 @@ async function loadAndRenderComments(itemId) {
       return;
     }
     listEl.innerHTML = comments.map(c => {
-      const canDelete = currentUser && (currentUser.username === c.author || currentUser.role === 'admin');
+      const author = c.username || c.author || 'Unknown';
+      const timestamp = c.timestamp || c.created_at;
+      const initial = author.charAt(0).toUpperCase();
+      const canDelete = currentUser && (currentUser.username === author || currentUser.role === 'admin');
+      const dateStr = timestamp ? new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
       return `<div class="comment">
-        <div class="comment__meta">
-          <span class="comment__author">${escapeHtml(c.author)}</span>
-          <span class="comment__time">${relativeTime(c.created_at)}</span>
+        <div class="comment__header">
+          <span class="comment__avatar">${initial}</span>
+          <div class="comment__meta">
+            <span class="comment__author">${escapeHtml(author)}</span>
+            <span class="comment__time">${dateStr}${dateStr && timeStr ? ' at ' : ''}${timeStr}</span>
+          </div>
           ${canDelete ? `<button class="comment__delete" data-comment-id="${c.id}" title="Delete note">&times;</button>` : ''}
         </div>
         <div class="comment__text">${escapeHtml(c.comment)}</div>
