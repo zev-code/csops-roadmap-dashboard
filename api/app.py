@@ -1,7 +1,9 @@
 from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_login import login_required, current_user, login_user, logout_user
 from config import Config
+from auth import login_manager, authenticate
 import hmac
 import json
 import os
@@ -10,7 +12,16 @@ from datetime import datetime, timezone
 
 app = Flask(__name__, static_folder='../static')
 app.config.from_object(Config)
-CORS(app)
+CORS(app, supports_credentials=True)
+
+# --- Auth setup ---
+login_manager.init_app(app)
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    """Return 401 JSON instead of redirecting to login page."""
+    return jsonify({'error': 'Authentication required'}), 401
 
 VALID_STATUSES = ['BACKLOG', 'PLANNED', 'NEXT', 'IN_PROGRESS', 'DONE']
 REQUIRED_FIELDS = ['name']
@@ -142,6 +153,51 @@ def health():
     return jsonify({'status': 'ok'})
 
 
+# --- Auth ---
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    body = request.get_json(silent=True)
+    if not body:
+        return jsonify({'error': 'Request body required'}), 400
+    username = body.get('username', '').strip()
+    password = body.get('password', '')
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+
+    user = authenticate(username, password)
+    if user:
+        login_user(user, remember=body.get('remember', False))
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+            },
+        })
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'success': True})
+
+
+@app.route('/api/auth/me')
+@login_required
+def get_current_user():
+    return jsonify({
+        'id': current_user.id,
+        'username': current_user.username,
+        'email': current_user.email,
+        'role': current_user.role,
+    })
+
+
 # --- Roadmap ---
 
 @app.route('/api/roadmap')
@@ -257,6 +313,7 @@ def update_item(item_id):
     updated['added_date'] = existing.get('added_date', today_str())
     updated['votes'] = existing.get('votes', [])
     updated['vote_count'] = existing.get('vote_count', 0)
+    updated['comments'] = existing.get('comments', [])
     # Carry forward existing dates unless explicitly provided
     if 'start_date' not in body:
         updated['start_date'] = existing.get('start_date')
@@ -343,11 +400,168 @@ def submit_backlog():
     return jsonify({'error': 'Not implemented — backlog submission coming in Phase 2'}), 501
 
 
-# --- Voting (Phase 2 stub) ---
+# --- Voting ---
 
 @app.route('/api/roadmap/items/<int:item_id>/vote', methods=['POST'])
+@login_required
 def vote_item(item_id):
-    return jsonify({'error': 'Not implemented — voting coming in Phase 2'}), 501
+    """Vote on a roadmap item (upvote/downvote toggle)."""
+    body = request.get_json(silent=True)
+    vote_type = (body or {}).get('vote', 'up')
+    if vote_type not in ('up', 'down'):
+        return jsonify({'error': 'vote must be "up" or "down"'}), 400
+
+    data = load_roadmap()
+    idx, item = find_item(data['items'], item_id)
+    if item is None:
+        return jsonify({'error': f'Item {item_id} not found'}), 404
+
+    votes = item.get('votes', [])
+    user_vote = next((v for v in votes if v.get('user_id') == current_user.id), None)
+    now_ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    if user_vote:
+        if user_vote['vote'] == vote_type:
+            # Un-vote (toggle off)
+            votes = [v for v in votes if v.get('user_id') != current_user.id]
+        else:
+            # Change vote direction
+            user_vote['vote'] = vote_type
+    else:
+        votes.append({
+            'user_id': current_user.id,
+            'username': current_user.username,
+            'vote': vote_type,
+            'timestamp': now_ts,
+        })
+
+    item['votes'] = votes
+    item['vote_count'] = sum(1 if v['vote'] == 'up' else -1 for v in votes)
+
+    # Track in edit history
+    history = list(item.get('edit_history', []))
+    history.append({
+        'timestamp': now_ts,
+        'field': 'votes',
+        'old_value': None,
+        'new_value': f'{current_user.username} voted {vote_type}',
+        'edited_by': current_user.username,
+    })
+    item['edit_history'] = history
+    data['items'][idx] = item
+    save_roadmap(data)
+
+    current_vote = next(
+        (v['vote'] for v in item['votes'] if v.get('user_id') == current_user.id),
+        None,
+    )
+    return jsonify({
+        'success': True,
+        'vote_count': item['vote_count'],
+        'user_vote': current_vote,
+    })
+
+
+# --- Comments ---
+
+@app.route('/api/roadmap/items/<int:item_id>/comments', methods=['GET'])
+def get_comments(item_id):
+    """Get comments for a roadmap item (public read)."""
+    data = load_roadmap()
+    _, item = find_item(data['items'], item_id)
+    if item is None:
+        return jsonify({'error': f'Item {item_id} not found'}), 404
+    return jsonify({'comments': item.get('comments', [])})
+
+
+@app.route('/api/roadmap/items/<int:item_id>/comments', methods=['POST'])
+@login_required
+def add_comment(item_id):
+    """Add a comment to a roadmap item."""
+    body = request.get_json(silent=True)
+    if not body:
+        return jsonify({'error': 'Request body required'}), 400
+    comment_text = (body.get('comment') or '').strip()
+    if not comment_text:
+        return jsonify({'error': 'Comment text required'}), 400
+    if len(comment_text) > 5000:
+        return jsonify({'error': 'Comment too long (max 5000 chars)'}), 400
+
+    data = load_roadmap()
+    idx, item = find_item(data['items'], item_id)
+    if item is None:
+        return jsonify({'error': f'Item {item_id} not found'}), 404
+
+    comments = item.get('comments', [])
+    comment_id = max((c.get('id', 0) for c in comments), default=0) + 1
+    now_ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    new_comment = {
+        'id': comment_id,
+        'user_id': current_user.id,
+        'username': current_user.username,
+        'comment': comment_text,
+        'timestamp': now_ts,
+        'replies': [],
+    }
+    comments.append(new_comment)
+    item['comments'] = comments
+
+    # Track in edit history
+    history = list(item.get('edit_history', []))
+    history.append({
+        'timestamp': now_ts,
+        'field': 'comments',
+        'old_value': None,
+        'new_value': f'{current_user.username} added comment',
+        'edited_by': current_user.username,
+    })
+    item['edit_history'] = history
+    data['items'][idx] = item
+    save_roadmap(data)
+
+    return jsonify({'success': True, 'comment': new_comment}), 201
+
+
+@app.route('/api/roadmap/items/<int:item_id>/comments/<int:comment_id>', methods=['PUT', 'DELETE'])
+@login_required
+def manage_comment(item_id, comment_id):
+    """Edit or delete a comment."""
+    data = load_roadmap()
+    idx, item = find_item(data['items'], item_id)
+    if item is None:
+        return jsonify({'error': f'Item {item_id} not found'}), 404
+
+    comments = item.get('comments', [])
+    comment = next((c for c in comments if c.get('id') == comment_id), None)
+    if comment is None:
+        return jsonify({'error': f'Comment {comment_id} not found'}), 404
+
+    # Only comment owner or admin can edit/delete
+    if comment.get('user_id') != current_user.id and current_user.role != 'admin':
+        return jsonify({'error': 'Permission denied'}), 403
+
+    now_ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    if request.method == 'PUT':
+        body = request.get_json(silent=True)
+        new_text = (body or {}).get('comment', '').strip()
+        if not new_text:
+            return jsonify({'error': 'Comment text required'}), 400
+        if len(new_text) > 5000:
+            return jsonify({'error': 'Comment too long (max 5000 chars)'}), 400
+        comment['comment'] = new_text
+        comment['edited'] = True
+        comment['edited_at'] = now_ts
+        data['items'][idx] = item
+        save_roadmap(data)
+        return jsonify({'success': True, 'comment': comment})
+
+    # DELETE
+    item['comments'] = [c for c in comments if c.get('id') != comment_id]
+    data['items'][idx] = item
+    save_roadmap(data)
+    return jsonify({'success': True})
 
 
 # --- Error handlers ---

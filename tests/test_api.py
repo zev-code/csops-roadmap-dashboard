@@ -50,9 +50,9 @@ class TestAPIEndpointsExist:
         resp = client.post('/api/backlog')
         assert resp.status_code == 501
 
-    def test_vote_stub(self, client):
+    def test_vote_requires_auth(self, client):
         resp = client.post('/api/roadmap/items/1/vote')
-        assert resp.status_code == 501
+        assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------

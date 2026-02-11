@@ -99,6 +99,7 @@ def app(tmp_roadmap, monkeypatch):
     # Disable git auto-commit during tests
     monkeypatch.setenv('GIT_AUTO_COMMIT', 'false')
     monkeypatch.setenv('FLASK_SECRET_KEY', 'test-secret')
+    monkeypatch.setenv('ADMIN_PASSWORD', 'admin')
 
     import importlib
     import config as cfg
@@ -123,6 +124,17 @@ def app(tmp_roadmap, monkeypatch):
 def client(app):
     """Flask test client."""
     return app.test_client()
+
+
+@pytest.fixture()
+def logged_in_client(app):
+    """Flask test client with an authenticated admin session."""
+    client = app.test_client()
+    client.post('/api/auth/login', json={
+        'username': 'admin',
+        'password': 'admin',
+    })
+    return client
 
 
 @pytest.fixture()

@@ -99,6 +99,7 @@ class TestStaticFilesExist:
     REQUIRED_FILES = [
         'index.html',
         'app.js',
+        'auth.js',
         'style.css',
         'confetti.min.js',
     ]

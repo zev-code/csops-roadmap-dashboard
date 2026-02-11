@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-11T01:30:11Z",
+  "last_updated": "2026-02-11T01:30:35Z",
   "items": [
     {
       "id": 1,
@@ -1340,7 +1340,7 @@
       "category": "CS Enablement",
       "description": "Login system, user roles (admin/editor/viewer), session management with Flask-Login. Enables team collaboration on roadmap.",
       "business_impact": "Enables team collaboration, tracks individual contributions, secures dashboard",
-      "outcome": "TBD - define after initial build",
+      "outcome": "Built Flask-Login auth with admin/editor/viewer roles, session management, login/logout/me endpoints, 10 auth tests passing",
       "success_metric": "TBD",
       "impact_score": 9.0,
       "ease_score": 6.0,
@@ -1348,9 +1348,9 @@
       "build_time": "60 minutes",
       "phase": "",
       "expected_delivery": "2026-02-12",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "start_date": "2026-02-10",
-      "completed_date": null,
+      "completed_date": "2026-02-10",
       "dependencies": "",
       "votes": [],
       "vote_count": 0,
@@ -1370,6 +1370,20 @@
           "field": "status",
           "old_value": "NEXT",
           "new_value": "IN_PROGRESS",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T01:30:32Z",
+          "field": "status",
+          "old_value": "IN_PROGRESS",
+          "new_value": "DONE",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T01:30:32Z",
+          "field": "outcome",
+          "old_value": "TBD - define after initial build",
+          "new_value": "Built Flask-Login auth with admin/editor/viewer roles, session management, login/logout/me endpoints, 10 auth tests passing",
           "edited_by": "Claude Code"
         }
       ]
@@ -1380,7 +1394,7 @@
       "category": "CS Enablement",
       "description": "Implement POST /api/roadmap/items/:id/vote endpoint. Upvote/downvote items, vote counts on cards, one vote per user. Voting stub already exists in API.",
       "business_impact": "Democratic prioritization, team engagement, visible stakeholder input",
-      "outcome": "TBD - define after initial build",
+      "outcome": "Replaced 501 stub with full upvote/downvote toggle, one vote per user, vote_count tracking, 9 voting tests passing",
       "success_metric": "TBD",
       "impact_score": 7.0,
       "ease_score": 8.0,
@@ -1388,9 +1402,9 @@
       "build_time": "30 minutes",
       "phase": "",
       "expected_delivery": "2026-02-12",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "start_date": "2026-02-10",
-      "completed_date": null,
+      "completed_date": "2026-02-10",
       "dependencies": "",
       "votes": [],
       "vote_count": 0,
@@ -1411,6 +1425,20 @@
           "old_value": "NEXT",
           "new_value": "IN_PROGRESS",
           "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T01:30:33Z",
+          "field": "status",
+          "old_value": "IN_PROGRESS",
+          "new_value": "DONE",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T01:30:33Z",
+          "field": "outcome",
+          "old_value": "TBD - define after initial build",
+          "new_value": "Replaced 501 stub with full upvote/downvote toggle, one vote per user, vote_count tracking, 9 voting tests passing",
+          "edited_by": "Claude Code"
         }
       ]
     },
@@ -1420,7 +1448,7 @@
       "category": "CS Enablement",
       "description": "Discussion threads in detail modal, reply to comments, @mentions, edit/delete own comments. Enables async collaboration.",
       "business_impact": "Captures context, reduces Slack noise, preserves decision history",
-      "outcome": "TBD - define after initial build",
+      "outcome": "Full CRUD comments with owner/admin permissions, 5000 char limit, edit history tracking, comments preserved through updates, 13 comment tests passing",
       "success_metric": "TBD",
       "impact_score": 8.0,
       "ease_score": 6.0,
@@ -1428,9 +1456,9 @@
       "build_time": "45 minutes",
       "phase": "",
       "expected_delivery": "2026-02-12",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "start_date": "2026-02-10",
-      "completed_date": null,
+      "completed_date": "2026-02-10",
       "dependencies": "",
       "votes": [],
       "vote_count": 0,
@@ -1450,6 +1478,20 @@
           "field": "status",
           "old_value": "NEXT",
           "new_value": "IN_PROGRESS",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T01:30:35Z",
+          "field": "status",
+          "old_value": "IN_PROGRESS",
+          "new_value": "DONE",
+          "edited_by": "Claude Code"
+        },
+        {
+          "timestamp": "2026-02-11T01:30:35Z",
+          "field": "outcome",
+          "old_value": "TBD - define after initial build",
+          "new_value": "Full CRUD comments with owner/admin permissions, 5000 char limit, edit history tracking, comments preserved through updates, 13 comment tests passing",
           "edited_by": "Claude Code"
         }
       ]
