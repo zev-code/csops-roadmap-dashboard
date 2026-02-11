@@ -41,6 +41,9 @@ jobs:
       - name: "⚙️ Backend API Tests"
         run: pytest tests/test_api.py -v --tb=short
 
+      - name: "🔐 Auth, Voting & Comments Tests"
+        run: pytest tests/test_auth.py -v --tb=short
+
       - name: "🔒 Security Tests"
         run: pytest tests/test_security.py -v --tb=short
 
@@ -123,4 +126,4 @@ jobs:
           DEPLOY_USER: ${{ secrets.VPS_USER }}
           DEPLOY_HOST: ${{ secrets.VPS_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" 'cd /var/www/csops-roadmap && git pull origin main && sudo systemctl restart csops-roadmap && sleep 2 && curl -sf http://127.0.0.1:5000/api/health || exit 1 && echo "Deploy successful"'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" 'cd /var/www/csops-roadmap && git pull origin main && sudo python3 -m pip install -r requirements.txt --quiet && sudo systemctl restart csops-roadmap && sleep 2 && curl -sf http://127.0.0.1:5000/api/health || exit 1 && echo "Deploy successful"'
