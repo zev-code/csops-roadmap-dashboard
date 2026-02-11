@@ -403,12 +403,9 @@ function createCard(item) {
   card.dataset.itemId = item.id;
   card.setAttribute('tabindex', '0');
   card.setAttribute('role', 'button');
-  card.setAttribute('aria-label', `${item.name}, ${STATUS_LABELS[item.status]}, priority ${item.priority_score}`);
+  card.setAttribute('aria-label', `${item.name}, ${STATUS_LABELS[item.status]}`);
 
   const catStyle = getCategoryStyle(item.category);
-  const priorityHtml = item.priority_score > 0
-    ? `<span class="card__priority">\u2B50 ${item.priority_score}</span>`
-    : '';
 
   let overdueHtml = '';
   if (item.status === 'IN_PROGRESS' && item.expected_delivery) {
@@ -421,8 +418,32 @@ function createCard(item) {
     }
   }
 
+  // Votes + comments meta row
+  const voteCount = item.vote_count || 0;
+  const votes = item.votes || [];
+  const commentCount = (item.comments || []).length;
+  const hasUserVote = currentUser && votes.some(v => v.user_id === currentUser.id);
+  let metaHtml = '';
+  if (voteCount > 0 || commentCount > 0) {
+    const voterInitials = votes
+      .filter(v => v.vote === 'up')
+      .slice(0, 3)
+      .map(v => `<span class="card__voter">${getInitials(v.username)}</span>`)
+      .join('');
+    const extraVoters = votes.filter(v => v.vote === 'up').length - 3;
+    const votersHtml = voterInitials
+      ? `<span class="card__voters">${voterInitials}${extraVoters > 0 ? `<span class="card__voter card__voter--more">+${extraVoters}</span>` : ''}</span>`
+      : '';
+    const votesHtml = voteCount > 0
+      ? `<span class="card__votes${hasUserVote ? ' card__votes--active' : ''}">&#9650; ${voteCount}</span>`
+      : '';
+    const commentsHtml = commentCount > 0
+      ? `<span class="card__comments">\u{1F4AC} ${commentCount}</span>`
+      : '';
+    metaHtml = `<div class="card__meta">${votesHtml}${votersHtml}<span class="card__meta-spacer"></span>${commentsHtml}</div>`;
+  }
+
   card.innerHTML = `
-    ${priorityHtml ? `<div class="card__top">${priorityHtml}</div>` : ''}
     <div class="card__title">${escapeHtml(item.name)}</div>
     ${overdueHtml}
     <div class="card__bottom">
@@ -431,6 +452,7 @@ function createCard(item) {
       </span>
       <span class="card__owner">${getInitials(item.owner)}</span>
     </div>
+    ${metaHtml}
   `;
 
   // Click opens detail (not during drag)

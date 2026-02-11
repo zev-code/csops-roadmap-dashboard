@@ -592,6 +592,63 @@ body.dark .card__overdue {
   background: rgba(252, 165, 165, 0.12);
 }
 
+/* ───── Card Meta Row (votes + comments) ───── */
+.card__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.card__meta-spacer {
+  flex: 1;
+}
+
+.card__votes {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color var(--transition);
+}
+
+.card__votes--active {
+  color: var(--green);
+}
+
+.card__voters {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.card__voter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-badge);
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+
+.card__voter--more {
+  font-size: 9px;
+  background: transparent;
+  width: auto;
+}
+
+.card__comments {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: color var(--transition);
+}
+
 .detail__value--overdue {
   color: #DC2626;
   font-weight: 600;
