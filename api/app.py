@@ -641,8 +641,10 @@ def handle_http_error(e):
 
 @app.errorhandler(500)
 def server_error(e):
+    import traceback
+    traceback.print_exc()
     return jsonify({'error': 'Internal server error'}), 500
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=Config.PORT)
+    app.run(debug=Config.DEBUG, host='0.0.0.0', port=Config.PORT)

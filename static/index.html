@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CS Ops Automation Roadmap</title>
-  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,6 +12,13 @@
   <!-- Header -->
   <header class="header">
     <div class="header__left">
+      <h1 class="header__title">CS Ops Automation Roadmap</h1>
+    </div>
+    <div class="header__right">
+      <span class="header__updated" id="lastUpdated"></span>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="icon" id="themeIcon"></span>
+      </button>
       <div class="user-menu" id="userMenu" style="display:none">
         <button class="user-avatar" id="userAvatar" aria-label="User menu">
           <img src="" alt="" id="userAvatarImg" style="display:none">
@@ -27,13 +34,6 @@
           <button class="user-dropdown__item" id="menuLogout">Log out</button>
         </div>
       </div>
-      <h1 class="header__title">CS Ops Automation Roadmap</h1>
-    </div>
-    <div class="header__right">
-      <span class="header__updated" id="lastUpdated"></span>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-        <span class="icon" id="themeIcon"></span>
-      </button>
     </div>
   </header>
 

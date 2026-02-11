@@ -215,7 +215,7 @@ class TestDependencyIntegrity:
     STDLIB_AND_LOCAL = {
         'functools', 'flask', 'flask_cors', 'flask_login',
         'werkzeug', 'config', 'auth', 'hmac', 'json', 'os',
-        'subprocess', 'datetime', 'sys', 'pathlib', 'hashlib',
+        'subprocess', 'datetime', 'sys', 'pathlib', 'hashlib', 'traceback',
         'secrets', 'logging', 'collections', 'typing', 'abc',
         're', 'io', 'time', 'copy', 'math', 'uuid', 'base64',
         'urllib', 'importlib', 'contextlib', 'dataclasses',
