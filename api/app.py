@@ -252,6 +252,17 @@ def google_callback():
                 suggestion='Please sign in with your DashQ email address.',
             ), 403
 
+        # Block new account creation when registration is disabled
+        from auth import USERS
+        existing = any(u['email'].lower() == email.lower() for u in USERS.values())
+        if Config.REGISTRATION_DISABLED and not existing:
+            return render_template('error.html',
+                title='Registration Closed',
+                message='New account registration is currently disabled.',
+                detail=f'Your email: {email}',
+                suggestion='Contact the administrator for access.',
+            ), 403
+
         user = get_or_create_user(email, name, picture)
         login_user(user, remember=True)
         return redirect('/')

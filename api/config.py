@@ -24,5 +24,8 @@ class Config:
     # Self-healing: n8n webhook URL that receives 500 errors for AI auto-fix
     ERROR_WEBHOOK_URL = os.getenv('ERROR_WEBHOOK_URL')
 
+    # Registration control
+    REGISTRATION_DISABLED = os.getenv('REGISTRATION_DISABLED', 'false').lower() == 'true'
+
     # User persistence
     USERS_FILE = os.path.join(DATA_DIR, 'users.json')
